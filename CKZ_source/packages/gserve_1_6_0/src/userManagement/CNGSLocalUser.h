@@ -33,6 +33,8 @@ public:
     /** {"id", "gamertag", "email", "password", "facebookid"} of this user (the caller owns it). */
     CObjectMapObject* GetObjectMapRepresentationForUpdateUserInfo();
     void LoadCredentials();  // added by b027x
+    /** b145: call-free accessor (CNGS::Resume reads the session through it; shifts its inline order). */
+    CNGSSession* GetSession() const { return m_session; }
     /** Logged in on `network` (0: on any network). */
     unsigned char isAuthenticated(int network);
     /** Ask for the last message times of the friends; 0 when `notify` cannot be queued now. */

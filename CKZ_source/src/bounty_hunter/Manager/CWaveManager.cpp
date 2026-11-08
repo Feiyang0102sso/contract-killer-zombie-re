@@ -55,11 +55,16 @@ void CWaveManager::Load(const wchar_t* path, Vector<Vector<SWave> >* waves)
         free(text);
     }
     // l: full TinyXML interface; original 14032c/140344 are still direct inline reads of firstChild/next.
-    for (TiXmlNode* root = document.FirstChild(); root != NULL; root = root->NextSibling()) {
-        if (root->FirstChild("wave") != NULL) {
-            Parse(root, waves);
-            break;
-        }
+    // The original keeps a guard plus a rotated loop here.
+    TiXmlNode* root = document.FirstChild();
+    if (root != NULL) {
+        do {
+            if (root->FirstChild("wave") != NULL) {
+                Parse(root, waves);
+                break;
+            }
+            root = root->NextSibling();
+        } while (root != NULL);
     }
 }
 
@@ -88,7 +93,9 @@ void CWaveManager::Parse(TiXmlNode* root, Vector<Vector<SWave> >* waves)
     for (int level = 0; level < 101; level++) {
         waves->addElement(Vector<SWave>());
     }
-    for (TiXmlNode* node = root->FirstChild("wave"); node != NULL; node = node->NextSibling("wave")) {
+    // The original fetches the next sibling before the per-wave locals are destroyed.
+    TiXmlNode* node = root->FirstChild("wave");
+    while (node != NULL) {
         SWave wave;
         wave.m_id = CXmlHelper::GetAttributeValue(node, "id").ToInt();
         wave.m_level = CXmlHelper::GetAttributeValue(node, "level").ToInt();
@@ -116,6 +123,7 @@ void CWaveManager::Parse(TiXmlNode* root, Vector<Vector<SWave> >* waves)
         if (wave.m_events.size() != 0) {
             (*waves)[wave.m_level].addElement(wave);
         }
+        node = node->NextSibling("wave");
     }
 }
 

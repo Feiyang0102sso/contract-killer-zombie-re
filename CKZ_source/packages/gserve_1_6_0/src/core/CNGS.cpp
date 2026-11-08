@@ -195,7 +195,7 @@ void CNGS::Resume()
 {
     CNGSLocalUser* user = GetLocalUser();
     if (user != NULL && user->isValid()) {
-        CNGSSession* session = user->m_session;
+        CNGSSession* session = user->GetSession();
         if (session != NULL) {
             session->clearNetworkTime();
             session->SyncAllFromServer(NULL);

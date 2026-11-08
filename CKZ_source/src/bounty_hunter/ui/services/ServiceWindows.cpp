@@ -174,17 +174,18 @@ void LabelWithIcon::Create(const char* image, XString text, bool flag, CFont* fo
     SetHeightByContent(0, 0);
 }
 
-AnimatedWindow::AnimatedWindow(EMode mode) : WindowTransparent(false), m_mode(mode), m_closing(0)
+AnimatedWindow::AnimatedWindow(EMode mode) : WindowTransparent(false)
 {
     // The original writes only these six groups of fields; the remaining parameters stay uninitialized until SetStart/CloseEasy.
     m_start.m_enabled = false;
     m_start.m_flag20 = false;
-    m_start.m_firstScale = 1.0f;
     m_start.m_lastScale = 1.0f;
+    m_start.m_firstScale = 1.0f;
     m_close.m_enabled = false;
     m_close.m_flag20 = false;
-    m_close.m_firstScale = 1.0f;
     m_close.m_lastScale = 1.0f;
+    m_close.m_firstScale = 1.0f;
+    m_mode = mode; m_closing = 0;  // assigned after the easy parameters (original store order)
     SetWidthByContent(0, 0);
     SetHeightByContent(0, 0);
 }

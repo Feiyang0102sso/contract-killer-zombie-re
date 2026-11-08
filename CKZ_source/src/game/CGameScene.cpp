@@ -76,7 +76,7 @@ void CGameScene::FillGameLoadingTasks(CLoadingScreen* loadingScreen)
             virtual bool Load(CLoadingScreen* screen)
             {
                 if (!*m_gserveStarted) {
-                    if (((App*)WindowApp::m_instance)->m_networkAvailability->IsAvailable()) {
+                    if (((App*)WindowApp::m_instance)->GetNetworkAvailability()->IsAvailable()) {
                         if (!CNGSLoginFlow::GetInstance()->IsRunning()) {
                             ((App*)WindowApp::m_instance)->StartGServerLight();
                             *m_gserveStarted = true;
@@ -84,7 +84,7 @@ void CGameScene::FillGameLoadingTasks(CLoadingScreen* loadingScreen)
                     }
                 }
                 if (*m_gserveStarted) {
-                    if (!((App*)WindowApp::m_instance)->m_networkAvailability->IsAvailable() ||
+                    if (!((App*)WindowApp::m_instance)->GetNetworkAvailability()->IsAvailable() ||
                         !CNGSLoginFlow::GetInstance()->IsRunning()) {
                         *m_gserveStarted = false;
                     }

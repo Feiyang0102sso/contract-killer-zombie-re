@@ -60,11 +60,12 @@ void CBH_PersonType::Parse(TiXmlNode* node)
     Vector<XString> damageParts;
     DGHelper::SplitStringAndTrim(damageParts, damageText, XString("-"));
     m_damageMin = damageParts[0].ToInt();
-    int damageMax = m_damageMin;
     if (damageParts.size() >= 2) {
-        damageMax = damageParts[1].ToInt();
+        m_damageMax = damageParts[1].ToInt();
+    } else {
+        m_damageMax = m_damageMin;
     }
-    m_damageMax = damageMax;
+
 
     m_blowDamage = CXmlHelper::GetAttributeValueOrUseDefault(node, "blow_damage", XString(L"0")).ToInt();
     m_critProbability = CXmlHelper::GetAttributeValue(node, "crit_prob").ToFloat();

@@ -48,9 +48,10 @@ void CMission::ParseInfo(TiXmlNode* node)
     Vector<XString> limits;
     DGHelper::SplitStringAndTrim(limits, level, XString("-"));
     m_minLevel = limits[0].ToInt();
-    m_maxLevel = m_minLevel;
     if (limits.size() > 1) {
         m_maxLevel = limits[1].ToInt();
+    } else {
+        m_maxLevel = m_minLevel;
     }
     m_reward.Load(node, XString("reward_"));
     m_minPeople = CXmlHelper::GetAttributeValueOrUseDefault(node, "min_people", XString(L"0")).ToInt();
@@ -171,9 +172,9 @@ int CMission::GetMapIconAnimation() const
             return 0x0e;
         }
         return 3;
+    case MISSION_EM: return 0x0c;
     case MISSION_CB: return 2;
     case MISSION_ST: return 1;
-    case MISSION_EM: return 0x0c;
     default: return 0;
     }
 }
@@ -224,8 +225,9 @@ bool CMission::CheckMissionConditions(CZombieDialogWindow** dialog) const
         m_minPeople > player->GetStats(PLAYER_STATS_PEOPLE)) {
         {
             // Original 0x12cbe0 releases the format string before constructing the dialog.
-            XString format = Window::ResString("IDS_NOT_ENOUGH_PEOPLE_OR_PROVISION");
-            text.Append(XString::Format(format.c_str(), player->GetStats(PLAYER_STATS_PROVISION), m_minProvision,
+            // One full expression: the Format result slot is allocated before the ResString temporary.
+            text.Append(XString::Format(Window::ResString("IDS_NOT_ENOUGH_PEOPLE_OR_PROVISION").c_str(),
+                                        player->GetStats(PLAYER_STATS_PROVISION), m_minProvision,
                                         player->GetStats(PLAYER_STATS_PEOPLE), m_minPeople));
         }
         *dialog = new CZombieDialogWindow(3);

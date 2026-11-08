@@ -147,6 +147,28 @@ public:
     int GetThisCycleScore();  // added by b077
     /** Seconds since the app came to the foreground. */  // added by b077
     int GetTimeSinceAppForeground();  // added by b077
+    // Counter getters (b145): CheckAllAchievements inlines one call-free getter per counter read;
+    // the original inline order of its five title checks (stack slots of their name copies) needs them.
+    int GetBarrelsDestroyed() const { return m_barrelsDestroyed; }
+    int GetCiviliansRescued() const { return m_civiliansRescued; }
+    int GetEmEvelynProtected() const { return m_emEvelynProtected; }
+    int GetEmGoalReached() const { return m_emGoalReached; }
+    int GetEmWavesSurvived() const { return m_emWavesSurvived; }
+    int GetHandgunHeadshots() const { return m_handgunHeadshots; }
+    int GetHeadshotAchieved() const { return m_headshotAchieved; }
+    int GetHeadshots() const { return m_headshots; }
+    int GetHealingGunUses() const { return m_healingGunUses; }
+    int GetLauncherKills() const { return m_launcherKills; }
+    int GetMissionsCompleted() const { return m_missionsCompleted; }
+    int GetProvisionsCollected() const { return m_provisionsCollected; }
+    int GetRevolverKills() const { return m_revolverKills; }
+    int GetRoundsFired() const { return m_roundsFired; }
+    int GetShotgunKills() const { return m_shotgunKills; }
+    int GetSmgKills() const { return m_smgKills; }
+    int GetSniperKills() const { return m_sniperKills; }
+    int GetWeaponsBought() const { return m_weaponsBought; }
+    int GetZombiesKilled() const { return m_zombiesKilled; }
+    int GetHelicoptersSent(int index) const { return m_helicoptersSent[index]; }
 
     // Counters read by CAchievementManager::CheckAllAchievements (offsets from CBH_Player + 0xec;  // added by b077
     // names from the achievements that use them, the rest of the layout is not known yet).  // added by b077

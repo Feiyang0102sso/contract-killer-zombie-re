@@ -71,10 +71,10 @@ void CGPSMapScreen::Update()
         ((App*)WindowApp::m_instance)->m_soundManager->Play(CDH_SoundManager::SOUND_MUSIC_ALL, false, false);
     }
     m_pointer.TouchUpdate(WindowApp::m_instance->m_updateFrameTime);
-    PointerEventController::Position position;
-    position.x = 0;
-    position.y = 0;
-    PointerEventController::Event event(position, 0, 0, PointerEventController::EVENT_NONE);
+    PointerEventController::Event event;  // filled field by field (store order of the original)
+    event.m_position.x = 0;
+    event.m_position.y = 0;
+    event.m_deltaX = 0; event.m_deltaY = 0; event.m_type = PointerEventController::EVENT_NONE;
     while (m_pointer.GetEvent(event)) {
         if (m_firstChild == (Window*)m_mapGame) {
             m_mapGame->OnPointerEvent(event);

@@ -566,18 +566,29 @@ void SimpleDialog::ItemsWindow::OnCommand(Event& event)
     event.Clear();
 }
 
+/**
+ * Store one dialog margin.
+ * b145: the original sets the six margins through a call-free inline helper; inlining
+ * it six times reorders the inliner worklist so that the second CFontMgr::GetInstance
+ * is inlined before the first (original stack slot order of the two `found` locals).
+ */
+static inline void SetMargin(signed char* margins, int index, int value)
+{
+    margins[index] = value;
+}
+
 SimpleDialog::SimpleDialog(EDialogType type)
 {
     FreeLayout();
     ClearAndSetFlags(FLAG_CHILDREN_FIRST, FLAG_CANCELABLE | FLAG_SCROLLBAR | FLAG_EVENTS_WHILE_SHOWING);
     SetAlign(0);
     m_frameStyle = 1;
-    m_margins[MARGIN_SIDE] = 0x10;
-    m_margins[MARGIN_TOP] = 0x14;
-    m_margins[MARGIN_BOTTOM] = 0x1a;
-    m_margins[MARGIN_ITEMS] = 0xa;
-    m_margins[MARGIN_ITEM_GAP] = 0;
-    m_margins[MARGIN_TITLE] = 0;
+    SetMargin(m_margins, MARGIN_SIDE, 0x10);
+    SetMargin(m_margins, MARGIN_TOP, 0x14);
+    SetMargin(m_margins, MARGIN_BOTTOM, 0x1a);
+    SetMargin(m_margins, MARGIN_ITEMS, 0xa);
+    SetMargin(m_margins, MARGIN_ITEM_GAP, 0);
+    SetMargin(m_margins, MARGIN_TITLE, 0);
     m_type = type;
     m_titleFont = CFontMgr::GetInstance()->GetFont(FONT_TITLE);
     m_registerKeys = true;

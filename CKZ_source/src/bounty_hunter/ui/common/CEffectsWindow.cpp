@@ -33,12 +33,12 @@ void CEffectsWindow::StartEffect(SEffect& effect)
 {
     int x;
     int y;
-    if (effect.m_randomPosition) {
-        x = WindowApp::m_instance->GetRandomValue().Int(m_effectWidth);
-        y = WindowApp::m_instance->GetRandomValue().Int(m_effectHeight);
-    } else {
+    if (!effect.m_randomPosition) {
         x = effect.m_x;
         y = effect.m_y;
+    } else {
+        x = WindowApp::m_instance->GetRandomValue().Int(m_effectWidth);
+        y = WindowApp::m_instance->GetRandomValue().Int(m_effectHeight);
     }
     int periodBeforeRandom = effect.m_periodMS;
     float random = WindowApp::m_instance->GetRandomValue().CFloat();

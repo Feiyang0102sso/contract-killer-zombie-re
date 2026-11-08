@@ -61,10 +61,13 @@ void CGCLeaderboardsManager::FillLeaderBoards(const char* board)
     GameCenter_LeaderboardData player;
     GameCenter_Facade::GetInstance()->GetLocalPlayerData(board, player);
     bool playerListed = false;
+    // One row pointer for the whole function: the original reuses a single stack slot for the
+    // listed rows and the appended player row (addElement takes it by reference).
+    SLeaderboardData* row;
     for (int index = 0; index < GameCenter_Facade::GetInstance()->GetLeaderboardSize(board); index++) {
         GameCenter_LeaderboardData data;
         GameCenter_Facade::GetInstance()->GetLeaderboardData(board, index, data);
-        SLeaderboardData* row = new SLeaderboardData();
+        row = new SLeaderboardData();
         row->m_isPlayer = false;
         row->m_name = data.name.GetWCharPtr();
         row->m_rank = data.rank;
@@ -77,7 +80,7 @@ void CGCLeaderboardsManager::FillLeaderBoards(const char* board)
         m_leaderboards.addElement(row);
     }
     if (!playerListed) {
-        SLeaderboardData* row = new SLeaderboardData();
+        row = new SLeaderboardData();
         row->m_isPlayer = true;
         row->m_name = player.name.GetWCharPtr();
         row->m_rank = player.rank;

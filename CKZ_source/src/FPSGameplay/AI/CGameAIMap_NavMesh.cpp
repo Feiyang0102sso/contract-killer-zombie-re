@@ -882,8 +882,8 @@ vec3 CGameAIMap_NavMesh::PutPointToCell(const SCellAI& cell, const vec3& positio
     Plane plane(first, cell.m_vertices[1]->m_position, cell.m_vertices[2]->m_position, true);
     vec3 result = position;
     if (plane.m_normal.m_z != 0.0f) {
-        result.m_z = ((first.m_x - position.m_x) * plane.m_normal.m_x +
-                      (first.m_y - position.m_y) * plane.m_normal.m_y) / plane.m_normal.m_z + first.m_z;
+        result.m_z = (plane.m_normal.m_x * (first.m_x - position.m_x) +
+                      plane.m_normal.m_y * (first.m_y - position.m_y)) / plane.m_normal.m_z + first.m_z;
     }
     return result;
 }

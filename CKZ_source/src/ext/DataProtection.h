@@ -29,6 +29,9 @@ public:
     /** Unscrambled value. */
     T Get() const;
 
+    /** Copy re-scrambles with a fresh key (b145: inlined in CItem::ParseOverridable). */
+    Encrypted& operator=(const Encrypted& other) { Set(other.Get()); return *this; }
+
     T m_scrambled;          // 0x00
     unsigned int m_key;     // 0x04
 };

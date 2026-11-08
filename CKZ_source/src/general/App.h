@@ -161,6 +161,11 @@ public:
     static bool IsWVGA();
     static bool IsAtrix();
     static bool IsKindle();
+    // b145: call-free inline accessor; CAchievementManager::Update reads the tutorial manager through it
+    // (it shifts the inliner worklist so the two GameCenter_Facade::GetInstance copies swap stack slots).
+    CTutorialManager* GetTutorialManager() const { return m_tutorialManager; }
+    // b145: call-free accessor, read by the CGameScene loading step before CNGSLoginFlow::GetInstance.
+    CNetworkAvailability* GetNetworkAvailability() const { return m_networkAvailability; }
     // b074i: original 117850 weak body; WVGA keeps 1 first, then selects 2 by HD.
     static int Scale()
     {

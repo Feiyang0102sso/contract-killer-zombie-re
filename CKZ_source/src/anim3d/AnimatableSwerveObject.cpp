@@ -193,37 +193,35 @@ void AnimatableSwerveObject::setTexturePropertyChannelValue(int channel, int val
     swerve::Transformable<ErrorHandler> texture(m_nodes[channel]);
     if (texture != NULL) {
         float floatValue = Fixed::toFloat(value);
+        // translation and scale share one 3-float buffer, the rotation has its own (original frame layout)
+        float components[3];
+        float angleAxis[4];
         switch (type) {
         case CHANNEL_TEXTURE_TRANSLATION_X: {
-            float translation[3];
-            texture.getTranslation(translation);
-            translation[0] = floatValue;
-            texture.setTranslation(translation);
+            texture.getTranslation(components);
+            components[0] = floatValue;
+            texture.setTranslation(components);
             break;
         }
         case CHANNEL_TEXTURE_TRANSLATION_Y: {
-            float translation[3];
-            texture.getTranslation(translation);
-            translation[1] = floatValue;
-            texture.setTranslation(translation);
+            texture.getTranslation(components);
+            components[1] = floatValue;
+            texture.setTranslation(components);
             break;
         }
         case CHANNEL_TEXTURE_SCALE_X: {
-            float scale[3];
-            texture.getScale(scale);
-            scale[0] = floatValue;
-            texture.setScale(scale);
+            texture.getScale(components);
+            components[0] = floatValue;
+            texture.setScale(components);
             break;
         }
         case CHANNEL_TEXTURE_SCALE_Y: {
-            float scale[3];
-            texture.getScale(scale);
-            scale[1] = floatValue;
-            texture.setScale(scale);
+            texture.getScale(components);
+            components[1] = floatValue;
+            texture.setScale(components);
             break;
         }
         case CHANNEL_TEXTURE_ROTATION: {
-            float angleAxis[4];
             texture.getOrientation(angleAxis);
             angleAxis[0] = floatValue;
             angleAxis[1] = 0.0f;

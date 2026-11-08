@@ -42,8 +42,8 @@ void CFiveDaysBonusDialog::CreateMessage(int day)
     if (day == 0) {
         daysText.Assign(Window::ResString("IDS_FIVE_DAYS_BONUS_FIRST_DAY"));
     } else {
-        XString format = Window::ResString("IDS_DAILY_BONUS_TEXT_DAYS");
-        daysText.Assign(XString::Format(format.m_data, day + 1));
+        // The format string is a temporary of the same full expression (original slot order).
+        daysText.Assign(XString::Format(Window::ResString("IDS_DAILY_BONUS_TEXT_DAYS").m_data, day + 1));
     }
     XString bonusText = XString::Format(Window::ResString("IDS_DAILY_BONUS_BONUS").m_data, bonusName.m_data);
     TextWindow* days = new TextWindow();

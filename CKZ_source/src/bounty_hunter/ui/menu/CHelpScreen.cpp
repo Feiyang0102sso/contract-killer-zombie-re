@@ -55,10 +55,8 @@ CHelpScreen::CHelpScreen() : CBaseScreen(true, true, false),
     m_debugText.Append(L"\nPush Notification app secret: ", wcslen(L"\nPush Notification app secret: ") * sizeof(wchar_t));
     m_debugText.Append(XString(PUSH_NOTIFICATIONS_APP_SECRET));
     char* dlc = ((App*)WindowApp::m_instance)->m_resMap->loadText(XString("res/common/configs/dlc_date.txt"));
-    {
-        XString date(dlc);
-        m_debugText.Append(XString::Format(L"\nDownloadable Content date (DLC_VER): %s\n", date.m_data));
-    }
+    // The date string is a temporary of the same full expression as Format (original slot/destruction order).
+    m_debugText.Append(XString::Format(L"\nDownloadable Content date (DLC_VER): %s\n", XString(dlc).m_data));
     if (dlc != NULL) delete[] dlc;
     m_debugText.Append(XString("GServ url:") + XString(GSERV_URL));
     m_debugText.Append(XString("\nGServe ID:") + XString(0x1e1b620a));

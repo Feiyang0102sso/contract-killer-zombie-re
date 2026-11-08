@@ -375,8 +375,8 @@ void DGHelper::getUserParameter(swerve::Object3D<CSwerveAssertingErrorHandler>& 
 void DGHelper::getUserParameter(swerve::Object3D<CSwerveAssertingErrorHandler>& object, const char* name,
                                 int* value)
 {
-    float number = -1.0f;
-    getUserParameter(object, CSwerve::GenerateUserID(name), &number);
+    int id = CSwerve::GenerateUserID(name); float number = -1.0f;  // id first, as the original orders it
+    getUserParameter(object, id, &number);
     *value = (int)number;
 }
 
@@ -456,13 +456,14 @@ int DGHelper::GetDaysFromTimestamp(unsigned int timestamp)
 
 XString DGHelper::FormatMoneyString(int money)
 {
+    wchar_t character;  // declared first: highest stack slot in the original
     XString digits(money);
     XString result;
     for (int index = 0; index < digits.Length(); index++) {
         if (index % 3 == 0 && index >= 1) {
             result = XString(",") + result;
         }
-        wchar_t character = digits.Char(digits.Length() - 1 - index);
+        character = digits.Char(digits.Length() - 1 - index);
         result.InsertData(0, &character, sizeof(wchar_t));
     }
     return result;

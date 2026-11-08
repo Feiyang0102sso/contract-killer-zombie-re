@@ -526,7 +526,8 @@ void CUnitsController::Blast(const vec3& position, float radius, int damage, int
         float factor = MathLib::Pow(1.0f - distance / radius, 2.0f);
         if (distance <= radius) {
             // Keeps the original call order of the object branch: compute Pow first, then check radius.
-            int amount = (int)((float)damage * (1.0f - factor) + (float)power * factor);
+            float powerPart = (float)power * factor;
+            int amount = (int)((float)damage * (1.0f - factor) + powerPart);
             m_objects[index]->ReceivedDamage(amount, distance);
         }
     }
@@ -550,23 +551,24 @@ vec3 CalculateUnitRepulse(const vec3& firstPosition, const vec3& firstSpeed, flo
     float threshold = (float)((double)firstRadius * 0.5 + (double)secondRadius * 0.5) + 1.5f;
     vec3 difference = secondPosition - firstPosition;
     float square = difference.LengthSqr();
-    if (!(square < threshold * threshold)) {
-        return vec3();
+    // The original lays out the in-range branch first; the zero result block comes last.
+    if (square < threshold * threshold) {
+        // The original two speed arguments are not read; the two InvSqrt each have a real call, not merged.
+        float inverseLength = MathLib::InvSqrt(square);
+        float distance = MathLib::InvSqrt(square) * square;
+        float magnitude = (float)(((double)(distance / -1.5f) + 1.0) * (double)MaxSteeringForce);
+        if (!(magnitude > 0.0f)) {
+            magnitude = 0.0f;
+        }
+        float zero = magnitude * 0.0f;
+        float tangent = magnitude * -0.9f;
+        float dx = difference.m_x * inverseLength;
+        float dy = difference.m_y * inverseLength;
+        float dz = difference.m_z * inverseLength;
+        return vec3(dx * tangent - zero * dy, dy * tangent + dx * zero,
+                    dz * tangent + dz * zero);
     }
-    // The original two speed arguments are not read; the two InvSqrt each have a real call, not merged.
-    float inverseLength = MathLib::InvSqrt(square);
-    float distance = MathLib::InvSqrt(square) * square;
-    float magnitude = (float)(((double)(distance / -1.5f) + 1.0) * (double)MaxSteeringForce);
-    if (!(magnitude > 0.0f)) {
-        magnitude = 0.0f;
-    }
-    float zero = magnitude * 0.0f;
-    float tangent = magnitude * -0.9f;
-    float dx = difference.m_x * inverseLength;
-    float dy = difference.m_y * inverseLength;
-    float dz = difference.m_z * inverseLength;
-    return vec3(dx * tangent - zero * dy, dy * tangent + dx * zero,
-                dz * tangent + dz * zero);
+    return vec3();
 }
 
 float CUnitsController::GetCiviliansMeanRelativeHP()

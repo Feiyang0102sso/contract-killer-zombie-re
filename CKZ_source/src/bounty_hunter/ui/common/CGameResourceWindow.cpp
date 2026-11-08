@@ -71,10 +71,10 @@ void CGameResourceWindow::UpdateDisplay()
         break;
     case 2:
         {
-            XString value(m_value);
-            XString prefix = value + L"/";
-            XString maximum(m_maximum);
-            text = prefix + maximum;
+            // one expression: all four strings are temporaries (slot and destructor order of the original)
+            text = XString(m_value) + L"/" + XString(m_maximum);
+
+
         }
         break;
     case 3:

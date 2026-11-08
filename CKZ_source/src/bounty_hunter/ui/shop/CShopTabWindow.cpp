@@ -37,11 +37,12 @@ CShopTabWindow::CShopTabWindow(int archetype, int character)
     m_filterButtons = NULL;
     m_contentHost = new WindowTransparent(false);
     m_contentHost->SetPercentWidth(100, 0, 0);
-    height = 80;
+    // b145: two calls with different constants (tail-merged into one call with ITE MOVs in the original).
     if (App::IsKindle() == 1) {
-        height = 84;
+        m_contentHost->SetPercentHeight(84, 0, 0);
+    } else {
+        m_contentHost->SetPercentHeight(80, 0, 0);
     }
-    m_contentHost->SetPercentHeight(height, 0, 0);
     m_contentHost->SetAlign(0xc);
     m_contentHost->SetOutsetSpacing(header->m_height + header->m_y, 0, 0, 0);
     AddToFront(m_contentHost);

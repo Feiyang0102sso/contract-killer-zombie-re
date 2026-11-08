@@ -131,8 +131,8 @@ void CShopRectItemButton::AddStrips()
     if (m_rectItem->IsEquiped() == 1) {
         AddEquipStrip(48, ResString("IDS_WEAPON_EQUIPPED"), 29);
     } else if (m_rectItem->IsLocked() == 1) {
-        XString format = ResString("IDS_WEAPON_LEVEL_LOCK");
-        AddEquipStrip(47, XString::Format(format.m_data, m_rectItem->getUnlockLvl()), 27);
+        // the format string is a temporary of the call expression (its slot is below the Format result)
+        AddEquipStrip(47, XString::Format(ResString("IDS_WEAPON_LEVEL_LOCK").m_data, m_rectItem->getUnlockLvl()), 27);
     } else if (m_rectItem->IsOwned() == 1) {
         AddEquipStrip(49, ResString("IDS_WEAPON_OWNED"), 29);
     }

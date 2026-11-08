@@ -494,11 +494,11 @@ void CDH_Weapon::playReloadSound()
     if (GetApp()->m_powerUpManager->IsPowerUpRunning() == true) {
         float soundSpeed = GetApp()->m_powerUpManager->GetActivePowerUp()->m_reloadSoundSpeed;
         CPowerUp* powerUp = GetApp()->m_powerUpManager->GetActivePowerUp();
-        if (soundSpeed == 1.0f) {
-            muted = powerUp->m_reloadSpeed != 1.0f;
-        } else {
+        // The original keeps a separate "muted = true" block after the second compare.
+        if (soundSpeed != 1.0f || powerUp->m_reloadSpeed != 1.0f) {
             muted = true;
         }
+
     }
 
     if (m_weaponType == WEAPON_TYPE_SHOTGUN) {
@@ -513,12 +513,12 @@ void CDH_Weapon::playReloadSound()
         } else {
             speed = 1.0f;
         }
-        float startDuration = GetApp()->m_soundManager->GetSoundDuration(SOUND_SHOTGUN_RELOAD_START, 2, 22000);
-        float shell1Duration = GetApp()->m_soundManager->GetSoundDuration(SOUND_SHOTGUN_SHELL_1, 2, 22000);
-        float shell2Duration = GetApp()->m_soundManager->GetSoundDuration(SOUND_SHOTGUN_SHELL_2, 2, 22000);
-        float endDuration = GetApp()->m_soundManager->GetSoundDuration(SOUND_SHOTGUN_RELOAD_END, 2, 22000);
+        float startDuration = speed * GetApp()->m_soundManager->GetSoundDuration(SOUND_SHOTGUN_RELOAD_START, 2, 22000);
+        float shell1Duration = speed * GetApp()->m_soundManager->GetSoundDuration(SOUND_SHOTGUN_SHELL_1, 2, 22000);
+        float shell2Duration = speed * GetApp()->m_soundManager->GetSoundDuration(SOUND_SHOTGUN_SHELL_2, 2, 22000);
+        float endDuration = speed * GetApp()->m_soundManager->GetSoundDuration(SOUND_SHOTGUN_RELOAD_END, 2, 22000);
 
-        SReloadingStep startStep(muted ? -1 : SOUND_SHOTGUN_RELOAD_START, 0, speed * startDuration);
+        SReloadingStep startStep(muted ? -1 : SOUND_SHOTGUN_RELOAD_START, 0, startDuration);
         m_reloadingSteps.addElement(startStep);
 
         unsigned int shells = m_clipSize;
@@ -527,15 +527,15 @@ void CDH_Weapon::playReloadSound()
         }
         for (int shell = 0; shell < (int)(shells - m_ammo); shell++) {
             if ((CRandGen::GetInstance()->GetRand(99) & 1) != 0) {
-                SReloadingStep step(muted ? -1 : SOUND_SHOTGUN_SHELL_1, 1, speed * shell1Duration);
+                SReloadingStep step(muted ? -1 : SOUND_SHOTGUN_SHELL_1, 1, shell1Duration);
                 m_reloadingSteps.addElement(step);
             } else {
-                SReloadingStep step(muted ? -1 : SOUND_SHOTGUN_SHELL_2, 1, speed * shell2Duration);
+                SReloadingStep step(muted ? -1 : SOUND_SHOTGUN_SHELL_2, 1, shell2Duration);
                 m_reloadingSteps.addElement(step);
             }
         }
 
-        SReloadingStep endStep(muted ? -1 : SOUND_SHOTGUN_RELOAD_END, 0, speed * endDuration);
+        SReloadingStep endStep(muted ? -1 : SOUND_SHOTGUN_RELOAD_END, 0, endDuration);
         m_reloadingSteps.addElement(endStep);
     } else if (!muted) {
         GetApp()->m_soundManager->Play((CDH_SoundManager::eSound)m_reloadSound, false, false);

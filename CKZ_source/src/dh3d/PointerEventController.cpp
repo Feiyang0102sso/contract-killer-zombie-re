@@ -23,7 +23,7 @@ void PointerEventController::TouchUpdate(int elapsedMs)
     if (!m_touching) {
         return;
     }
-    bool released = m_released;
+    int released = m_released;  // int copy: the original keeps (m_released & 1) in a register
     if (m_moved) {
         if (released) {
             m_touching = false;
@@ -52,15 +52,15 @@ void PointerEventController::TouchDown(int x, int y)
         } else {
             m_events.addElement(Event(m_lastPosition, 0, 0, EVENT_TAP));
             m_touching = true;
-            m_lastPosition.x = x;
-            m_lastPosition.y = y;
-            m_touchTime = m_time;
+            int now = m_time;  // read before the position stores (original load order)
+            m_lastPosition.x = x; m_lastPosition.y = y;
+            m_touchTime = now;
         }
     } else {
         m_touching = true;
-        m_lastPosition.x = x;
-        m_lastPosition.y = y;
-        m_touchTime = m_time;
+        int now = m_time;  // read before the position stores (original load order)
+        m_lastPosition.x = x; m_lastPosition.y = y;
+        m_touchTime = now;
         Position position;
         position.x = x;
         position.y = y;

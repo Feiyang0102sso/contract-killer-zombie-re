@@ -64,6 +64,34 @@ Window* CreatePriceWindow(bool credits, int price, bool strikeThrough, bool larg
     return createTD(row, 3);
 }
 
+// b145: SetupLayout reads these values through small call-free inline accessors. Inlining
+// them reorders LLVM's inliner worklist (swap-with-last), which is what gives the five inlined
+// CFontMgr::GetInstance `found` locals their original stack slots.
+
+/** The dialog's content container. */
+static inline Window* ContentOf(CDailyDealDialogWindow* dialog)
+{
+    return dialog->m_contentContainer;
+}
+
+/** Top of the image frame of an SGImageWindow. */
+static inline short FrameTop(SGImageWindow* window)
+{
+    return window->m_imageY;
+}
+
+/** Height of the image frame of an SGImageWindow. */
+static inline short FrameHeight(SGImageWindow* window)
+{
+    return window->m_imageHeight;
+}
+
+/** The surface an ImageWindow draws. */
+static inline com::glu::platform::graphics::ICRenderSurface* FrameSurface(ImageWindow* window)
+{
+    return window->m_surface;
+}
+
 void CDailyDealDialogWindow::SetupLayout()
 {
     m_contentContainer->SetPercentHeight(60, 0, 0);
@@ -74,7 +102,7 @@ void CDailyDealDialogWindow::SetupLayout()
     table->SetAlign(12);
     table->SetWidthByContent(0, 0);
     table->SetHeightByContent(0, 0);
-    Window* content = m_contentContainer;
+    Window* content = ContentOf(this);
     content->AddToFront(createTD(table, 3), 0, 0);
     TextWindow* name = new TextWindow(CFontMgr::GetInstance()->GetFont(26));
     name->SetText(m_item->GetName());
@@ -85,15 +113,15 @@ void CDailyDealDialogWindow::SetupLayout()
     itemBackground->SetAnimation(8, 1);
     itemBackground->SetAlign(12);
     table->AddToFront(itemBackground, 0, 1);
-    short top = itemBackground->m_imageY;
-    unsigned short height = (unsigned short)itemBackground->m_imageHeight;
+    short top = FrameTop(itemBackground);
+    unsigned short height = (unsigned short)FrameHeight(itemBackground);
     ImageWindow* itemImage = new ImageWindow;
     itemImage->SetImage(m_item->GetShopImage());
     itemImage->SetAlign(36);
     itemBackground->AddToFront(itemImage);
     unsigned int imageWidth;
     unsigned int imageHeight;
-    itemImage->m_surface->GetWidthAndHeight(imageWidth, imageHeight);
+    FrameSurface(itemImage)->GetWidthAndHeight(imageWidth, imageHeight);
     // Original 149818..sxth followed by unsigned lsr; negative differences also keep the wraparound.
     unsigned int remaining = (unsigned int)((int)(short)(height + top) - (int)top) - imageHeight;
     itemImage->SetOutsetSpacing((int)(remaining >> 1), 0, 0, 0);
@@ -136,7 +164,7 @@ void CDailyDealDialogWindow::SetupLayout()
     timerRow->SetAlign(20);
     timerRow->SetWidthByContent(0, 0);
     timerRow->SetHeightByContent(0, 0);
-    content = m_contentContainer;
+    content = ContentOf(this);
     content->AddToFront(createTD(timerRow, 3), 0, 1);
     if (m_timer != NULL) {
         m_timer->Close();

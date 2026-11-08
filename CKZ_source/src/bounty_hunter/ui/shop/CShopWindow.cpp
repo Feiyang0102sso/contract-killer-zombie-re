@@ -33,6 +33,20 @@ SScreenAdaptingConstant SCROLL_PAGE_HEIGHT(170, -1, -1, 250);
 #include "CWeaponEquipZombieDialogWindow.h"
 #include "CWaitPurchaseWindow.h"
 
+/**
+ * Give a shop button its command; only the first parameter may be non-zero.
+ * b145: the original uses a call-free inline helper here; inlining it pulls the tail of the
+ * inliner worklist forward, so the three CFontMgr::GetInstance copies of create() are inlined
+ * in the original order (stack slots of their `found` locals).
+ */
+static inline void SetButtonCommand(CBH_Button* button, int command, int parameter = 0)
+{
+    button->m_command = command;
+    button->m_commandParameter1 = parameter;
+    button->m_commandParameter2 = 0;
+    button->m_commandParameter3 = 0;
+}
+
 class CustomBankButtonCreator : public CShopTabContentWindow::ItemButtonCreator {
 public:
     explicit CustomBankButtonCreator(int type) : m_type(type) {}
@@ -56,18 +70,12 @@ public:
         case 0:
             icon->SetAnimation(69, 1);
             icon->SetOutsetSpacing(0, 0, SScreenAdaptingConstant(10)(), 0);
-            button->m_command = 0x822663d7;
-            button->m_commandParameter1 = 0;
-            button->m_commandParameter2 = 0;
-            button->m_commandParameter3 = 0;
+            SetButtonCommand(button, 0x822663d7);
             break;
         case 1:
             icon->SetAnimation(64, 1);
             icon->SetOutsetSpacing(0, 0, SScreenAdaptingConstant(20)(), 0);
-            button->m_command = 0x71f7f6e4;
-            button->m_commandParameter1 = 0;
-            button->m_commandParameter2 = 0;
-            button->m_commandParameter3 = 0;
+            SetButtonCommand(button, 0x71f7f6e4);
             break;
         case 2:
             icon->SetAnimation(69, 1);
@@ -134,8 +142,8 @@ public:
             int x = (int)((double)globalX + (double)width * 0.95);
             int y = (int)((double)globalY + (double)height * 0.3);
             if (App::IsVGA() == 1) {
-                y /= 2;
                 x /= 2;
+                y /= 2;
             }
             if (m_frames == 15) {
                 m_frames++;
@@ -241,10 +249,7 @@ public:
         text->SetHeightByContent(0, 0);
         container->AddToFront(text);
         button->AddToFront(container);
-        button->m_command = command;
-        button->m_commandParameter1 = parameter;
-        button->m_commandParameter2 = 0;
-        button->m_commandParameter3 = 0;
+        SetButtonCommand(button, command, parameter);
         return button;
     }
     PlayHavenBadge* m_badge; // 4, owned, not attached to the window tree.

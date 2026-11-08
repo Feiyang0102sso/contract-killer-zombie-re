@@ -410,8 +410,8 @@ int CZombieMission::Preload(int waveLimit, bool countOnly)
     int examined = 0;
     for (int cycle = 0; cycle < m_cycleCount; cycle++) {
         for (int index = 0; index < m_cycles[cycle].size(); index++) {
-            CZombieWave* wave = m_cycles[cycle][index];
             Vector<XString> names;
+            CZombieWave* wave = m_cycles[cycle][index];
             if (wave->m_state != 2) {
                 wave->GetExpectedVisualCharacters(names);
                 examined++;

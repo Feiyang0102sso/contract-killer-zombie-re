@@ -275,15 +275,15 @@ void CItem::ParseOverridable(TiXmlNode* node, bool keepAsOriginal)
     m_salePricePoints.Set(CXmlHelper::GetIntAttributeValueOrUseDefault(node, "salePricePoints", m_origSalePricePoints.Get()));
     if (keepAsOriginal == true) {
         m_origHidden = m_hidden;
-        m_origPriceCredits.Set(m_priceCredits.Get());
-        m_origPricePoints.Set(m_pricePoints.Get());
+        m_origPriceCredits = m_priceCredits;
+        m_origPricePoints = m_pricePoints;
         m_origIsSale = m_isSale;
         m_origIsHot = m_isHot;
         m_origIsNew = m_isNew;
         m_origSaleStartMS = m_saleStartMS;
         m_origSaleEndMS = m_saleEndMS;
-        m_origSalePriceCredits.Set(m_salePriceCredits.Get());
-        m_origSalePricePoints.Set(m_salePricePoints.Get());
+        m_origSalePriceCredits = m_salePriceCredits;
+        m_origSalePricePoints = m_salePricePoints;
     }
 }
 

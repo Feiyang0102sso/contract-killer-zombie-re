@@ -492,9 +492,11 @@ void CGPSMapGame::PopulateMapLocationsWithKillAllMission()
             CMapLocation* location = locations[CRandGen::GetInstance()->GetRand(locations.size())];
             CMissionManager* manager = ((App*)WindowApp::m_instance)->m_missionManager;
             const CMission* current = manager->GetMissionByName(location->GetCurrentMission());
+            // The original reads the current difficulty before the result vector is constructed.
+            CMission::EMissionDifficulty difficulty = current->m_difficulty;
             Vector<const CMission*> missions;
             ((App*)WindowApp::m_instance)->m_missionManager->GetSuitableMissionsForLocation(
-                missions, location, current->m_difficulty, CMission::MISSION_KA);
+                missions, location, difficulty, CMission::MISSION_KA);
             if (missions.size() != 0) {
                 unsigned int index = CRandGen::GetInstance()->GetRand(missions.size());
                 location->SetMission(missions[index]->m_name, false);
@@ -522,7 +524,7 @@ void CGPSMapGame::ShowZombieDialog(XString title, XString text)
     dialog->SetTitle(title);
     dialog->SetText(text, false, NULL);
     dialog->AddButton(CZombieDialogWindow::BUTTON_OK, (unsigned int)-1, 0, 0, true, 20);
-    CDialogQueueWindow::AddDialogInQueue(dialog);
+    AddDialogInQueue(dialog); // Member wrapper: keeps "this" live for the callers (original passes r0).
 }
 
 void CGPSMapGame::ResetBriefingSound()
@@ -641,7 +643,7 @@ void CGPSMapGame::OnCommand(Event& event)
     case (int)0x8b7127cd:
         break; // The original forwards directly to the base class OnCommand; must not clear the event.
     default:
-        if (event.m_id == EventId_TargettingMissionFriendSelected) {
+        if (EventId_TargettingMissionFriendSelected == event.m_id) {
             CIncentivizedWindow* dialog = (CIncentivizedWindow*)event.m_param1;
             Vector<int> selected = dialog->GetSelectedIds();
             if (selected.size() > 0 && selected[0] >= 0) {
