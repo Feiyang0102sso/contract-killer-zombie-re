@@ -1,0 +1,17 @@
+# Recovery work area: analysis output, notes, round reports (~1.5 GB, local only)
+recovery/
+
+# Build products and local environment
+_output/
+.wsl/
+.cache/
+
+# Xcode 4.2.1 installer: Apple license, never redistributed (put your own copy here)
+toolchain/xcode/*.dmg
+
+# Misc
+*.o
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

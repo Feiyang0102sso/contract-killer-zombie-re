@@ -1,0 +1,24 @@
+// zombsniper_Prefix.pch - project-wide prefix header (Xcode GCC_PREFIX_HEADER), included into every file.
+// Every Glu translation unit calls the np_* allocator/memory wrappers instead of the C library:
+// the platform layer redirects them here. NPMalloc.cpp / NPMem.cpp #undef these names to reach libc.
+#ifdef __OBJC__
+    #import <Foundation/Foundation.h>
+    #import <UIKit/UIKit.h>
+#endif
+
+#include "NPMalloc.h"
+#include "NPMem.h"
+
+#define malloc  np_malloc
+#define calloc  np_calloc
+#define realloc np_realloc
+#define free    np_free
+#define memchr  np_memchr
+#define memcmp  np_memcmp
+#define memcpy  np_memcpy
+#define memmove np_memmove
+#define memset  np_memset
+
+#ifdef __cplusplus
+    #include "NPNew.h"
+#endif

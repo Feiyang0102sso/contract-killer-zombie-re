@@ -1,0 +1,17 @@
+# Keep LF everywhere: the sources are compiled inside Linux and must stay byte-identical on every checkout
+* text=auto eol=lf
+
+# Windows launchers need CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Prebuilt blocks regenerated from the original binary (Swerve, OpenSSL):
+# excluded from GitHub language statistics and collapsed in diffs
+*.s linguist-generated=true
+
+# Binary files
+*.png binary
+*.jpg binary
+*.dmg binary
+*.patch text eol=lf
