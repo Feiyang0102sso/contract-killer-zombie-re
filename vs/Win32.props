@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <CkzRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..'))</CkzRoot>
+    <CkzPort>$(CkzRoot)CKZ_source\pc_port\</CkzPort>
+    <CkzThirdParty>$(CkzPort)3rd_party</CkzThirdParty>
+    <CkzScripts>$(CkzRoot)scripts</CkzScripts>
+    <CkzPython Condition="'$(CkzPython)' == '' and Exists('$(CkzRoot).venv\Scripts\python.exe')">$(CkzRoot).venv\Scripts\python.exe</CkzPython>
+    <CkzPython Condition="'$(CkzPython)' == '' and Exists('$(CkzRoot)..\.venv\Scripts\python.exe')">$(CkzRoot)..\.venv\Scripts\python.exe</CkzPython>
+    <CkzPython Condition="'$(CkzPython)' == ''">python.exe</CkzPython>
+    <CkzToolCache Condition="'$(CkzToolCache)' == ''">$(CkzRoot).cache\deps</CkzToolCache>
+    <CkzUnicorn>$(CkzThirdParty)\unicorn-2.1.4\</CkzUnicorn>
+    <CkzLlvm>$(CkzToolCache)\LLVM\bin\</CkzLlvm>
+    <CLToolPath>$(CkzLlvm)</CLToolPath>
+    <CLToolExe>clang-cl.exe</CLToolExe>
+    <CkzBuildName>$(Configuration)</CkzBuildName>
+    <CkzBuildName Condition="'$(CkzAddressSanitizer)' == 'true'">$(Configuration)-ASan</CkzBuildName>
+    <OutDir>$(CkzRoot)bin\$(Platform)\$(CkzBuildName)\</OutDir>
+    <IntDir>$(CkzRoot)out\$(Platform)\$(CkzBuildName)\$(MSBuildProjectName)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <MultiProcCL>true</MultiProcCL>
+    <MultiProcMaxCount Condition="'$(MultiProcMaxCount)' == ''">8</MultiProcMaxCount>
+    <EnforceProcessCountAcrossBuilds>true</EnforceProcessCountAcrossBuilds>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(VCToolsInstallDir)include;$(WindowsSdkDir)Include\$(TargetPlatformVersion)\ucrt;$(UniversalCRT_IncludePath);$(WindowsSDK_IncludePath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <SDLCheck>false</SDLCheck>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+      <AdditionalOptions>--target=i686-pc-windows-msvc %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\x86;$(WindowsSdkDir)Lib\$(TargetPlatformVersion)\ucrt\x86;$(UniversalCRT_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>

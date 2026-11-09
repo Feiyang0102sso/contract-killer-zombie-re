@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{67EC55D4-5160-4284-A1D2-AD095E4F1FE2}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>unicorn_arm</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <!-- Keep the upstream source groups in this MSBuild file. -->
+    <ReadOnlyProject>true</ReadOnlyProject>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '18.0'">v145</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '17.0'">v143</PlatformToolset>
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="Win32.props" />
+  <PropertyGroup>
+    <OutDir>$(IntDir)</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;inline=__inline;__func__=__FUNCTION__;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;__i386__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(CkzUnicorn)qemu\tcg\i386;$(CkzUnicorn)msvc;$(CkzUnicorn)glib_compat;$(CkzUnicorn)qemu;$(CkzUnicorn)qemu\include;$(CkzUnicorn)include;$(CkzUnicorn)qemu\tcg;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+    </ClCompile>
+    <Lib>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <!-- The x86 host executes just Unicorn's ARM target. This group uses the ARM symbol aliases. -->
+    <ClCompile Include="
+        $(CkzUnicorn)qemu\exec.c;
+        $(CkzUnicorn)qemu\exec-vary.c;
+        $(CkzUnicorn)qemu\softmmu\cpus.c;
+        $(CkzUnicorn)qemu\softmmu\ioport.c;
+        $(CkzUnicorn)qemu\softmmu\memory.c;
+        $(CkzUnicorn)qemu\softmmu\memory_mapping.c;
+        $(CkzUnicorn)qemu\fpu\softfloat.c;
+        $(CkzUnicorn)qemu\tcg\optimize.c;
+        $(CkzUnicorn)qemu\tcg\tcg.c;
+        $(CkzUnicorn)qemu\tcg\tcg-op.c;
+        $(CkzUnicorn)qemu\tcg\tcg-op-gvec.c;
+        $(CkzUnicorn)qemu\tcg\tcg-op-vec.c;
+        $(CkzUnicorn)qemu\accel\tcg\cpu-exec.c;
+        $(CkzUnicorn)qemu\accel\tcg\cpu-exec-common.c;
+        $(CkzUnicorn)qemu\accel\tcg\cputlb.c;
+        $(CkzUnicorn)qemu\accel\tcg\tcg-all.c;
+        $(CkzUnicorn)qemu\accel\tcg\tcg-runtime.c;
+        $(CkzUnicorn)qemu\accel\tcg\tcg-runtime-gvec.c;
+        $(CkzUnicorn)qemu\accel\tcg\translate-all.c;
+        $(CkzUnicorn)qemu\accel\tcg\translator.c;
+        $(CkzUnicorn)qemu\softmmu\unicorn_vtlb.c;
+        $(CkzUnicorn)qemu\target\arm\cpu.c;
+        $(CkzUnicorn)qemu\target\arm\crypto_helper.c;
+        $(CkzUnicorn)qemu\target\arm\debug_helper.c;
+        $(CkzUnicorn)qemu\target\arm\helper.c;
+        $(CkzUnicorn)qemu\target\arm\iwmmxt_helper.c;
+        $(CkzUnicorn)qemu\target\arm\m_helper.c;
+        $(CkzUnicorn)qemu\target\arm\neon_helper.c;
+        $(CkzUnicorn)qemu\target\arm\op_helper.c;
+        $(CkzUnicorn)qemu\target\arm\psci.c;
+        $(CkzUnicorn)qemu\target\arm\tlb_helper.c;
+        $(CkzUnicorn)qemu\target\arm\translate.c;
+        $(CkzUnicorn)qemu\target\arm\vec_helper.c;
+        $(CkzUnicorn)qemu\target\arm\vfp_helper.c;
+        $(CkzUnicorn)qemu\target\arm\unicorn_arm.c">
+      <PreprocessorDefinitions>NEED_CPU_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(CkzUnicorn)msvc\arm-softmmu;$(CkzUnicorn)qemu\target\arm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ForcedIncludeFiles>arm.h</ForcedIncludeFiles>
+      <ObjectFileName>$(IntDir)arm\</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="
+        $(CkzUnicorn)uc.c;
+        $(CkzUnicorn)qemu\softmmu\vl.c;
+        $(CkzUnicorn)qemu\hw\core\cpu.c;
+        $(CkzUnicorn)list.c;
+        $(CkzUnicorn)glib_compat\glib_compat.c;
+        $(CkzUnicorn)glib_compat\gtestutils.c;
+        $(CkzUnicorn)glib_compat\garray.c;
+        $(CkzUnicorn)glib_compat\gtree.c;
+        $(CkzUnicorn)glib_compat\grand.c;
+        $(CkzUnicorn)glib_compat\glist.c;
+        $(CkzUnicorn)glib_compat\gmem.c;
+        $(CkzUnicorn)glib_compat\gpattern.c;
+        $(CkzUnicorn)glib_compat\gslice.c;
+        $(CkzUnicorn)qemu\util\bitmap.c;
+        $(CkzUnicorn)qemu\util\bitops.c;
+        $(CkzUnicorn)qemu\util\crc32c.c;
+        $(CkzUnicorn)qemu\util\cutils.c;
+        $(CkzUnicorn)qemu\util\getauxval.c;
+        $(CkzUnicorn)qemu\util\guest-random.c;
+        $(CkzUnicorn)qemu\util\host-utils.c;
+        $(CkzUnicorn)qemu\util\osdep.c;
+        $(CkzUnicorn)qemu\util\qdist.c;
+        $(CkzUnicorn)qemu\util\qemu-timer.c;
+        $(CkzUnicorn)qemu\util\qemu-timer-common.c;
+        $(CkzUnicorn)qemu\util\range.c;
+        $(CkzUnicorn)qemu\util\qht.c;
+        $(CkzUnicorn)qemu\util\pagesize.c;
+        $(CkzUnicorn)qemu\util\cacheinfo.c;
+        $(CkzUnicorn)qemu\crypto\aes.c;
+        $(CkzUnicorn)qemu\util\oslib-win32.c;
+        $(CkzUnicorn)qemu\util\qemu-thread-win32.c">
+      <PreprocessorDefinitions>UNICORN_HAS_ARM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)common\</ObjectFileName>
+    </ClCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="PrepareCkzToolchain" BeforeTargets="PrepareForBuild"
+          Condition="!Exists('$(CkzLlvm)clang-cl.exe') or !Exists('$(CkzLlvm)lld-link.exe')">
+    <Exec Command="&quot;$(CkzPython)&quot; &quot;$(CkzScripts)\prepare_toolchain.py&quot; --cache &quot;$(CkzToolCache)&quot;" />
+  </Target>
+</Project>

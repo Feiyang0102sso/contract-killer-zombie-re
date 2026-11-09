@@ -41,8 +41,16 @@ ESaveResult CSaveManager::Init()
     ICFile* file = ICFileMgr::GetInstance()->Open(path.GetWCharPtr(), ICFileMgr::AccessRead);
     if (file != NULL) {
         unsigned int size = ICFileMgr::GetInstance()->Size(path.GetWCharPtr());
+#ifdef CKZ_PC
+        // PORT: The serialized file omits the terminator required by TinyXML.
+        unsigned char* data = new unsigned char[size + 1];
+#else
         unsigned char* data = new unsigned char[size];
+#endif
         int read = file->Read(data, size);
+#ifdef CKZ_PC
+        data[read] = 0;
+#endif
         ParseData(data, read, &m_document);
         ICFileMgr::GetInstance()->Close(file);
         delete[] data;
@@ -63,6 +71,13 @@ void CSaveManager::PauseByGServe(unsigned char paused)
 
 ESaveResult CSaveManager::ParseData(unsigned char* data, int size, TiXmlDocument* document)
 {
+#ifdef CKZ_PC
+    // PORT: a truncated file may not contain the CRC or the XOR key.
+    if (size < 5) {
+        ShowSaveErrorMessage(SAVE_CRC_ERROR);
+        return SAVE_CRC_ERROR;
+    }
+#endif
     unsigned int expected = (unsigned int)data[0] << 24 | (unsigned int)data[1] << 16 |
                             (unsigned int)data[2] << 8 | data[3];
     unsigned int actual = CCrc32::GetInstance()->Crc32(data + 4, size - 4);

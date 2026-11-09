@@ -182,6 +182,12 @@ public:
     CGameplayHUD* GetHUD() const { return m_hud; }
     bool GetDebugFireAction() const
     {
+#ifdef CKZ_PC
+        // PORT: closing the window frees the HUD before the final weapon update.
+        if ((m_flags & FLAG_CLOSING) != 0) {
+            return false;
+        }
+#endif
         if (((App*)WindowApp::m_instance)->m_settings->IsFireButtonEnabled() == true && GetHUD()->m_firePressed) return true;
         return m_debugFire;
     }

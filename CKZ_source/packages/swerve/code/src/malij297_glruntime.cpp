@@ -126,7 +126,7 @@ int malij297_GetEnvironment(malij297_Environment* environment)
     const GLubyte* renderer = glGetString(GL_RENDERER);
     env->m_renderer = renderer;
     // PVRVFrame is the PowerVR desktop emulator
-    char* emulator = strstr((const char*)renderer, "PVRVFrame");
+    const char* emulator = strstr((const char*)renderer, "PVRVFrame"); // PORT: C++ UCRT const overload.
     env->m_value88 = 0;
     if (emulator != NULL) {
         env->m_hasVertexHalfFloat = 0;

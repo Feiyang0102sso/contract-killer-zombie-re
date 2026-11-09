@@ -2065,8 +2065,11 @@ int ov_crosslap(OggVorbis_File *vf1, OggVorbis_File *vf2){
      buffer of vf2 */
   /* consolidate and expose the buffer. */
   vorbis_synthesis_lapout(&vf2->vd,&pcm);
+#ifndef CKZ_PC
+  /* PORT: the playback build omits the encoder's debug dump facility. */
   _analysis_output_always("pcmL",0,pcm[0],n1*2,0,0,0);
   _analysis_output_always("pcmR",0,pcm[1],n1*2,0,0,0);
+#endif
 
   /* splice */
   _ov_splice(pcm,lappcm,n1,n2,vi1->channels,vi2->channels,w1,w2);

@@ -77,8 +77,17 @@ int malij297_DecompressOnData(const unsigned char* data, unsigned int size, mali
         stream->avail_out = DECOMPRESSOR_BLOCK_SIZE;
         status = inflate(stream, Z_SYNC_FLUSH);
         if (stream->avail_out != DECOMPRESSOR_BLOCK_SIZE) {
+            // PORT: An ARM stream decoder passes a guest function as the inflate callback.
+#ifdef CKZ_PC
+            ckz::arm::Function<int(void*, int, const unsigned char*)> callback = {
+                ckz::arm::Pack(decompressor->m_callback)
+            };
+            keepGoing = callback(decompressor->m_userData, DECOMPRESSOR_BLOCK_SIZE - stream->avail_out,
+                                 decompressor->m_block);
+#else
             keepGoing = decompressor->m_callback(decompressor->m_userData, DECOMPRESSOR_BLOCK_SIZE - stream->avail_out,
                                                  decompressor->m_block);
+#endif
         }
     } while (keepGoing && status == Z_OK && stream->avail_out == 0);
 

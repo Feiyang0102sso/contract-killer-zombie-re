@@ -6,7 +6,9 @@
 #include <string.h>
 #include <wchar.h>
 #include <sys/types.h>
+#ifndef CKZ_PC
 #include <sys/sysctl.h>
+#endif
 #include "CNode.h"
 #include "AppSettings.h"
 #include "LanguageDialog.h"
@@ -503,12 +505,17 @@ int App::GetDeviceType()
 {
     if (m_deviceType == DEVICE_UNKNOWN) {
         CStrChar machine;
+#ifdef CKZ_PC
+        // PORT: Use the iPad 2 resource and gameplay capability profile at 1024 x 768.
+        machine = "iPad2,1";
+#else
         size_t size;
         sysctlbyname("hw.machine", NULL, &size, NULL, 0);
         char* buffer = (char*)malloc(size);
         sysctlbyname("hw.machine", buffer, &size, NULL, 0);
         machine = buffer;
         free(buffer);
+#endif
         const char* model = machine.m_string;
         if (model == NULL) {
             m_deviceType = DEVICE_OTHER;

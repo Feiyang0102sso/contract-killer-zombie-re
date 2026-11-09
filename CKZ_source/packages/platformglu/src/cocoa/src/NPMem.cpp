@@ -10,7 +10,7 @@
 
 void* np_memchr(const void* block, int value, size_t size)
 {
-    return memchr(block, value, size);
+    return const_cast<void*>(memchr(block, value, size)); // PORT: preserve the original C return type.
 }
 
 int np_memcmp(const void* left, const void* right, size_t size)

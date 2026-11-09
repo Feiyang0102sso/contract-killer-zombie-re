@@ -3,11 +3,13 @@ recovery/
 
 # Build products and local environment
 _output/
-.wsl/
 .cache/
-
-# Xcode 4.2.1 installer: Apple license, never redistributed (put your own copy here)
-toolchain/xcode/*.dmg
+/out/
+/bin/
+/assets/
+/.venv/
+.vs/
+*.vcxproj.user
 
 # Misc
 *.o

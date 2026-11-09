@@ -335,8 +335,32 @@ double CNGSJSONData::convertDateToSecondsFromNow(const CStrWChar& date)
     } else {
         text[255] = 0;
     }
+#ifdef CKZ_PC
+    // PORT: Parse the service's RFC 1123 dates using the Windows C library.
+    char month[4];
+    int year;
+    if (sscanf(text, "%*3s %d %3s %d %d:%d:%d", &dateTime.tm_mday, month, &year,
+               &dateTime.tm_hour, &dateTime.tm_min, &dateTime.tm_sec) != 6) {
+        return 0;
+    }
+    static const char* const months[] = {
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    };
+    for (dateTime.tm_mon = 0; dateTime.tm_mon < 12; dateTime.tm_mon++) {
+        if (strcmp(month, months[dateTime.tm_mon]) == 0) {
+            break;
+        }
+    }
+    if (dateTime.tm_mon == 12) {
+        return 0;
+    }
+    dateTime.tm_year = year - 1900;
+    dateTime.tm_isdst = 0;
+    return difftime(now, _mkgmtime(&dateTime));
+#else
     strptime(text, "%a, %d %b %Y %H:%M:%S %Z", &dateTime);
     return difftime(now, mktime(&dateTime));
+#endif
 }
 
 unsigned char CNGSJSONData::FindStringAttribute(const CStrWChar& path, const CStrWChar& name, CStrWChar* value)

@@ -116,8 +116,15 @@ void CUnitMind::FinishExecutor(IExecutor* executor, EExecutorResult result)
         return;
     }
     executor->m_state = 2;
+#ifdef CKZ_PC
+    // PORT: a death executor can cancel and delete itself in OnFinish.
+    const bool modal = executor->m_modal;
+    executor->OnFinish(result);
+    if (index >= 1 && !modal && m_executors.size() > index - 1) {
+#else
     executor->OnFinish(result);
     if (index >= 1 && !executor->m_modal && m_executors.size() > index - 1) {
+#endif
         m_executors[index - 1]->OnChildFinished(result);
     }
     IExecutor* top = GetTop();
