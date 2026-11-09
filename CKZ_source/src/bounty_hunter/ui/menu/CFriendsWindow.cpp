@@ -92,11 +92,12 @@ void CFriendsWindow::Update() { Window::Update(); }
 
 void CFriendsWindow::OnCommand(Event& event)
 {
-    if ((unsigned int)event.m_id == 0x62b2a2ceu) {
+    // b147: original compares 0x62b2a2ce first, i.e. the gift block is written first.
+    if ((unsigned int)event.m_id == 0xa4377002u) {
+        m_selectedGift = event.m_param1;
+    } else if ((unsigned int)event.m_id == 0x62b2a2ceu) {
         Close();
         event.Clear();
-    } else if ((unsigned int)event.m_id == 0xa4377002u) {
-        m_selectedGift = event.m_param1;
     }
     CBaseScreen::OnCommand(event);
 }

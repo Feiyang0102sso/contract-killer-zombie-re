@@ -13,10 +13,11 @@
         for (int x = 0; x < op.m_width; x++) {
 #if BLIT_PALETTE_ENTRIES == 16
             // even pixels read a byte, odd pixels use its low nibble
-            if ((x & 1) == 0) {
-                indices = op.m_stream->ReadUInt8();
-            } else {
+            // (b147: the original places the odd-pixel block first)
+            if ((x & 1) != 0) {
                 indices = (indices & 0x0f) << 4;
+            } else {
+                indices = op.m_stream->ReadUInt8();
             }
             if (!op.m_colorKeyEnabled ||
                 (op.m_palette[indices >> 4] & 0xffffff) !=
@@ -53,6 +54,9 @@
                 BLIT_STREAM_STORE(destination + (line * op.m_destinationPitch + column * BLIT_DESTINATION_BYTES));
             }
         }
-        op.m_stream->Skip(op.m_rowSkip);
+        // b147: the row padding is read into a local first; the original keeps the op.m_stream load
+        // inside the pixel loop instead of sharing it with this Skip call
+        unsigned int rowSkip = op.m_rowSkip;
+        op.m_stream->Skip(rowSkip);
     }
 }

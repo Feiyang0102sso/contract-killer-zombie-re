@@ -91,20 +91,19 @@ void TCMemoryPool<T>::Delete(T* object)
         return;
     }
     TCMemoryPool<T>* pool = this;
-    while (pool != NULL) {
-        if (object >= pool->m_elements && object < pool->m_end) {
-            pool->m_freeList[pool->m_freeCount] = object;
-            pool->m_freeCount++;
-            // A chained, last child pool whose objects are all free goes away.
-            // Original quirk: compares the object count with a byte count.
-            if (pool->m_parent != NULL && pool->m_next == NULL
-                && pool->m_end - pool->m_elements == pool->m_freeCount * (int)sizeof(T)) {
-                pool->m_parent->m_next = NULL;
-                delete pool;
-            }
+    while (object < pool->m_elements || object >= pool->m_end) {
+        pool = pool->m_next;
+        if (pool == NULL) {
             return;
         }
-        pool = pool->m_next;
+    }
+    pool->m_freeList[pool->m_freeCount++] = object;
+    // A chained, last child pool whose objects are all free goes away.
+    // Original quirk: compares the object count with a byte count.
+    if (pool->m_parent != NULL && pool->m_next == NULL
+        && pool->m_cursor - pool->m_elements == pool->m_freeCount * (int)sizeof(T)) {
+        pool->m_parent->m_next = NULL;
+        delete pool;
     }
 }
 

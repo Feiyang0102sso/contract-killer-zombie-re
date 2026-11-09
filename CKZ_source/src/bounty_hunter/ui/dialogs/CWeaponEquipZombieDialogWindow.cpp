@@ -228,25 +228,49 @@ void CWeaponEquipZombieDialogWindow::WarnForbiddenWeaponConfiguration()
 
 void CWeaponEquipZombieDialogWindow::OnCommand(Event& event)
 {
-    if (event.m_id == (int)0x910d9f06) {
+    // b147: original block order is slot, toggle, OK (reverse of the old chain).
+    if (event.m_id == 0x30826e06) {
+        if (m_offeredWeapon != NULL) {
+            // b147: one swap condition; its "selected = -1" store is tail-merged with the deselect branch.
+            if ((event.m_param1 == 0 && GetSlotWeapon(1) == m_offeredWeapon) ||
+                (event.m_param1 == 1 && GetSlotWeapon(0) == m_offeredWeapon)) {
+                m_swap = !m_swap;
+                m_selectedSlot = -1;
+            } else if (GetSlotWeapon(event.m_param1) == m_offeredWeapon) {
+                m_selectedSlot = -1;
+            } else {
+                m_selectedSlot = event.m_param1;
+                if (m_tutorialBlink != NULL) {
+                    m_tutorialBlink->m_blinking = false;
+                    m_okButton->m_blinking = true;
+                }
+            }
+        }
+        UpdateSlots();
+        event.Clear();
+    } else if (event.m_id == (int)0xb7aa6264) {
+        if (m_offeredGrenade != NULL && event.m_param1 == 0) {
+            m_selectGrenade = !m_selectGrenade;
+        }
+        if (m_offeredPowerUp != NULL && event.m_param1 == 1) {
+            m_selectPowerUp = !m_selectPowerUp;
+        }
+        UpdateSlots();
+        event.Clear();
+    } else if (event.m_id == (int)0x910d9f06) {
         ((App*)WindowApp::m_instance)->m_soundManager->Play((CDH_SoundManager::eSound)36, false, false);
         WindowApp::HandleTunnelCommand(0x0df6b618, m_selectedSlot, 0, 0);
         CDH_Weapon* offered = m_offeredWeapon;
         if (offered != NULL) {
             int slot = m_selectedSlot;
-            bool forbidden = false;
             if (slot >= 0) {
-                if (offered->m_projectileType == 2) {
-                    DGHelper* helper = ((App*)WindowApp::m_instance)->m_helper;
-                    CDH_Weapon* other = helper->m_gamePlayManager.m_playerData.GetGameData(helper->m_gamePlayManager.m_gameType)->GetWeapon(slot == 0);
-                    if (other->m_projectileType == 2) {
-                        WarnForbiddenWeaponConfiguration();
-                        forbidden = true;
-                    }
-                    offered = m_offeredWeapon;
-                }
-                if (!forbidden) {
-                    ((App*)WindowApp::m_instance)->m_helper->m_gamePlayManager.SetWeapon(slot, offered);
+                // b147: one combined condition; the warning block is moved to the function end in the original.
+                if (offered->m_projectileType == 2 &&
+                    ((App*)WindowApp::m_instance)->m_helper->m_gamePlayManager.m_playerData.GetGameData(
+                        ((App*)WindowApp::m_instance)->m_helper->m_gamePlayManager.m_gameType)->GetWeapon(slot == 0)->m_projectileType == 2) {
+                    WarnForbiddenWeaponConfiguration();
+                } else {
+                    ((App*)WindowApp::m_instance)->m_helper->m_gamePlayManager.SetWeapon(slot, m_offeredWeapon);
                     CGameAnalytics::logItemEquipped(m_offeredWeapon->GetName());
                 }
             }
@@ -266,45 +290,6 @@ void CWeaponEquipZombieDialogWindow::OnCommand(Event& event)
             CPowerUpManager* manager = ((App*)WindowApp::m_instance)->m_powerUpManager;
             manager->SetActivePowerUp(m_offeredPowerUp->getId());
         }
-    } else if (event.m_id == (int)0xb7aa6264) {
-        if (m_offeredGrenade != NULL && event.m_param1 == 0) {
-            m_selectGrenade = !m_selectGrenade;
-        }
-        if (m_offeredPowerUp != NULL && event.m_param1 == 1) {
-            m_selectPowerUp = !m_selectPowerUp;
-        }
-        UpdateSlots();
-        event.Clear();
-    } else if (event.m_id == 0x30826e06) {
-        if (m_offeredWeapon != NULL) {
-            int slot = event.m_param1;
-            bool swapped = false;
-            if (slot == 0 && GetSlotWeapon(1) == m_offeredWeapon) {
-                m_swap = !m_swap;
-                m_selectedSlot = -1;
-                swapped = true;
-            } else {
-                slot = event.m_param1;
-                if (slot == 1 && GetSlotWeapon(0) == m_offeredWeapon) {
-                    m_swap = !m_swap;
-                    m_selectedSlot = -1;
-                    swapped = true;
-                }
-            }
-            if (!swapped) {
-                if (GetSlotWeapon(event.m_param1) == m_offeredWeapon) {
-                    m_selectedSlot = -1;
-                } else {
-                    m_selectedSlot = event.m_param1;
-                    if (m_tutorialBlink != NULL) {
-                        m_tutorialBlink->m_blinking = false;
-                        m_okButton->m_blinking = true;
-                    }
-                }
-            }
-        }
-        UpdateSlots();
-        event.Clear();
     }
     CZombieDialogWindow::OnCommand(event);
 }

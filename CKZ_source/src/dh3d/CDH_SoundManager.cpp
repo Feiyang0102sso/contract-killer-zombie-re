@@ -235,11 +235,12 @@ void CDH_SoundManager::Play(eSound sound, bool exclusive, bool loop)
         return;
     }
     initResource(sound);
+    bool shouldLoop = loop || isMusic;
     if (exclusive == true && IsPlaying(sound)) {
         return;
     }
     components::ICMediaPlayer* player = components::ICMediaPlayer::GetInstance();
-    m_eventIds[sound] = player->Play((components::CMedia*)m_sounds[sound], loop || isMusic, 0);
+    m_eventIds[sound] = player->Play((components::CMedia*)m_sounds[sound], shouldLoop, 0);
 }
 
 void CDH_SoundManager::SetMusicLevel(unsigned long level)

@@ -99,22 +99,23 @@ void CIAPCurrency::setAvailable(bool available)
 
 int CIAPCurrency::Buy()
 {
-    if (isAvailable() != true) {
-        // k: original 12a72c explicitly sets r1=1 and calls at 12a73c; the real argument is kept even though the current callee ignores force.
-        ((App*)WindowApp::m_instance)->m_iapCurrencyManager->UpdateIAPInfo(true);
-        return 0;
+    // b147: original lays out the available branch first (cmp #1; bne to the refresh path).
+    if (isAvailable() == true) {
+        ICInAppPurchase* store = ICInAppPurchase::GetInstance();
+        CWaitPurchaseWindow::ShowModal();
+        XString item = XString::Format(L"%02d_%s", m_id, GetName().c_str());
+        if (m_cashGain != 0) {
+            CGameAnalytics::logIAPBuyClicked(item, m_cashGain, CGameAnalytics::CURRENCY_SOFT);
+        } else if (m_creditsGain != 0) {
+            CGameAnalytics::logIAPBuyClicked(item, m_creditsGain, CGameAnalytics::CURRENCY_HARD);
+        }
+        XString productId = m_appleId;
+        store->BuyProduct(CStrWChar(productId.c_str()));
+        return 1;
     }
-    ICInAppPurchase* store = ICInAppPurchase::GetInstance();
-    CWaitPurchaseWindow::ShowModal();
-    XString item = XString::Format(L"%02d_%s", m_id, GetName().c_str());
-    if (m_cashGain != 0) {
-        CGameAnalytics::logIAPBuyClicked(item, m_cashGain, CGameAnalytics::CURRENCY_SOFT);
-    } else if (m_creditsGain != 0) {
-        CGameAnalytics::logIAPBuyClicked(item, m_creditsGain, CGameAnalytics::CURRENCY_HARD);
-    }
-    XString productId = m_appleId;
-    store->BuyProduct(CStrWChar(productId.c_str()));
-    return 1;
+    // k: original 12a72c explicitly sets r1=1 and calls at 12a73c; the real argument is kept even though the current callee ignores force.
+    ((App*)WindowApp::m_instance)->m_iapCurrencyManager->UpdateIAPInfo(true);
+    return 0;
 }
 
 void CIAPCurrency::BuyFromOneTimeOffer()

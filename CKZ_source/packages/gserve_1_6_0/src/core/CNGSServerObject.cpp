@@ -89,7 +89,7 @@ void CNGSServerObject::SetIsValid(unsigned char isValid)
     m_isValid = isValid;
 }
 
-unsigned int CNGSServerObject::SendMessageObjectToServer(CObjectMapObject* message, const char* service,
+int CNGSServerObject::SendMessageObjectToServer(CObjectMapObject* message, const char* service,
                                                          CNGSServerRequestFunctor* functor)
 {
     // The map keeps a clone of the object, so the object itself is deleted here.

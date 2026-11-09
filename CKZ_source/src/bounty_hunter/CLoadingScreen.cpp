@@ -33,8 +33,11 @@ void CLoadingScreen::ClearSteps()
 {
     for (int index = 0; index < m_steps.size(); ++index) {
         if (m_steps[index]->IsDestructible() == true) {
-            delete m_steps[index];
-            m_steps[index] = NULL;
+            IStep* step = m_steps[index];
+            if (step != NULL) {
+                delete step;
+                m_steps[index] = NULL;
+            }
         }
     }
     m_steps.setSize(0);

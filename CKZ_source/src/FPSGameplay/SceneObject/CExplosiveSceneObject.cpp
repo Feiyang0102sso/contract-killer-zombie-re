@@ -50,7 +50,9 @@ void CExplosiveSceneObject::Explode()
     m_exploded = true;
     m_animation->setCurrentController(0, false);
     m_animation->animate();
-    ((App*)WindowApp::m_instance)->m_helper->m_swerveGame->Blast(m_position, vec3(0.0f, 0.0f, 1.0f),
+    const vec3& position = m_position;
+    vec3 normal(0.0f, 0.0f, 1.0f);
+    ((App*)WindowApp::m_instance)->m_helper->m_swerveGame->Blast(position, normal,
         m_damageRadius, 0, m_damage, NULL, NULL, NULL);
     ((App*)WindowApp::m_instance)->m_soundManager->Play((CDH_SoundManager::eSound)1, false, false);
 }

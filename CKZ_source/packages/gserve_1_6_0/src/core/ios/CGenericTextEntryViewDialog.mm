@@ -36,8 +36,8 @@ static const NSStringEncoding WCHAR_ENCODING = 0x9c000100;
 
     // size of the message, at least as wide as the text field and the buttons
     float actualFontSize = MESSAGE_FONT_SIZE;
-    UIFont* font = [UIFont systemFontOfSize:MESSAGE_FONT_SIZE];
-    CGSize messageSize = [m_messageText sizeWithFont:font
+    // b147: the font is created inside the message (the original loads the receiver m_messageText first)
+    CGSize messageSize = [m_messageText sizeWithFont:[UIFont systemFontOfSize:MESSAGE_FONT_SIZE]
                                          minFontSize:MESSAGE_FONT_SIZE
                                       actualFontSize:&actualFontSize
                                             forWidth:MESSAGE_MAX_WIDTH
@@ -68,8 +68,8 @@ static const NSStringEncoding WCHAR_ENCODING = 0x9c000100;
     [self addSubview:m_messageLabel];
 
     // text field below the message, showing the initial text as placeholder
-    NSString* placeholder = [[NSString alloc] initWithBytes:*m_ppText length:wcslen(*m_ppText) * sizeof(wchar_t) encoding:WCHAR_ENCODING];
     int textFieldY = (int)(messageSize.height + 4.0f + MARGIN);
+    NSString* placeholder = [[NSString alloc] initWithBytes:*m_ppText length:wcslen(*m_ppText) * sizeof(wchar_t) encoding:WCHAR_ENCODING];
     m_pTextField = [self createStandardTextField:placeholder
                                            frame:CGRectMake(MARGIN, textFieldY, m_fieldSize.width, m_fieldSize.height)
                                         isSecure:NO

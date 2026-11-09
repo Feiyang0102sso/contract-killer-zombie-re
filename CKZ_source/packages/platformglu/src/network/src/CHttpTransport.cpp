@@ -398,8 +398,12 @@ void CHttpTransport::ReceiveResponse()
 {
     int error = Error_BadStatus;
     // 200, 201, 204 and the redirects 302, 303 carry a usable body
-    if ((m_statusCode >= 200 && m_statusCode <= 201) || m_statusCode == 204
-        || (m_statusCode >= 302 && m_statusCode <= 303)) {
+    switch (m_statusCode) {
+    case 200:
+    case 201:
+    case 204:
+    case 302:
+    case 303:
         if (m_responseLength != 0 && m_bufferLength < m_responseLength) {
             m_state = State_ReceivingBody;
             error = m_socket->Receive(m_response + m_bufferLength, m_responseLength - m_bufferLength, m_timeoutMillis);
@@ -407,6 +411,7 @@ void CHttpTransport::ReceiveResponse()
             m_state = State_Cleanup;
             error = 0;
         }
+        break;
     }
     AbortOnError(error);
 }
@@ -481,10 +486,8 @@ void CHttpTransport::ParseChunkData()
     CHttpDataChunk* chunk = (CHttpDataChunk*)m_chunks.GetTail();
     if (chunk != NULL) {
         unsigned int missing = chunk->m_size - chunk->m_received;
-        unsigned int count = m_bufferLength;
-        if (count > missing) {
-            count = missing;
-        }
+        unsigned int available = m_bufferLength;
+        unsigned int count = available > missing ? missing : available;
         if (count != 0) {
             memcpy(chunk->m_data + chunk->m_received, m_buffer, count);
             missing -= count;

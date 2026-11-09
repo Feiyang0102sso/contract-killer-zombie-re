@@ -48,13 +48,13 @@ CTabWindow::CTabWindow(bool showInfo)
 void CTabWindow::CreateInfoTab()
 {
     m_infoTab = new TTab();
-    m_infoTab->m_x = SScreenAdaptingConstant(10, 20)();
-    m_infoTab->m_width = SScreenAdaptingConstant(150, 300)();
-    m_infoTab->m_y = m_y;
-    m_infoTab->m_height = ImageHeight(m_images[7].GetSurface());
+    m_infoTab->m_bounds.m_x = SScreenAdaptingConstant(10, 20)();
+    m_infoTab->m_bounds.m_width = SScreenAdaptingConstant(150, 300)();
+    m_infoTab->m_bounds.m_y = m_y;
+    m_infoTab->m_bounds.m_height = ImageHeight(m_images[7].GetSurface());
     m_infoWindow = new Window(false);
     m_infoWindow->SetLayoutType(Window::LAYOUT_NONE);
-    m_infoWindow->SetRect(m_infoTab->m_x, m_infoTab->m_y, m_infoTab->m_width, m_infoTab->m_height, false);
+    m_infoWindow->SetRect(m_infoTab->m_bounds.m_x, m_infoTab->m_bounds.m_y, m_infoTab->m_bounds.m_width, m_infoTab->m_bounds.m_height, false);
     Window* levelGroup = new Window(false);
     levelGroup->SetPercentWidth(27, 0, 0);
     ImageWindow* scope = new ImageWindow();
@@ -79,29 +79,32 @@ void CTabWindow::CreateInfoTab()
     currencies->SetLayoutType(Window::LAYOUT_TABLE);
     currencies->SetCellPos(1, 0, 1, 1);
     currencies->SetPercentWidth(75, 0, 0);
-    m_moneyBar = new CBH_ProgressBar(3, SScreenAdaptingConstant(100, 200)(), -1);
+    CBH_ProgressBar* moneyBar = new CBH_ProgressBar(3, SScreenAdaptingConstant(100, 200)(), -1);
+    m_moneyBar = moneyBar;
     int x = 8 * App::Scale();
     int y = App::Scale();
-    m_moneyBar->SetCorner(x, y);
+    moneyBar->SetCorner(x, y);
     m_moneyBar->SetDescImage("IDB_HUD_ICON_MONEY");
     m_moneyBar->m_barFlags = 5;
     m_moneyBar->SetTextAlign(TEXT_OUTSIDE);
     m_moneyBar->SetCurrValue(CBH_Player::GetInstance()->GetStats(PLAYER_STATS_SOFT_CURRENCY));
     currencies->AddToFront(m_moneyBar);
-    m_creditsBar = new CBH_ProgressBar(3, SScreenAdaptingConstant(100, 200)(), -1);
+    CBH_ProgressBar* creditsBar = new CBH_ProgressBar(3, SScreenAdaptingConstant(100, 200)(), -1);
+    m_creditsBar = creditsBar;
     x = 8 * App::Scale();
     y = 21 * App::Scale();
-    m_creditsBar->SetCorner(x, y);
+    creditsBar->SetCorner(x, y);
     m_creditsBar->SetDescImage("IDB_HUD_ICON_CREDITS");
     m_creditsBar->m_barFlags = 5;
     m_creditsBar->SetTextAlign(TEXT_OUTSIDE);
     m_creditsBar->SetCurrValue(CBH_Player::GetInstance()->GetStats(PLAYER_STATS_HARD_CURRENCY));
     currencies->AddToFront(m_creditsBar);
     m_infoWindow->AddToFront(currencies);
+    Window* infoWindow = m_infoWindow;
     int right = SScreenAdaptingConstant(5, 10, 10, -1)();
     top = SScreenAdaptingConstant(5, 10, 10, -1)();
     bottom = SScreenAdaptingConstant(5, 10, 10, -1)();
-    m_infoWindow->SetInsetSpacing(0, right, top, bottom);
+    infoWindow->SetInsetSpacing(0, right, top, bottom);
     AddToFront(m_infoWindow);
 }
 
@@ -144,20 +147,20 @@ void CTabWindow::AddTab(const XString& name, Window* window, const char* image, 
     }
     short tabWidth = width + extra;
     if (m_tabs.size() == 0) {
-        tab->m_x = infoWidth + (m_width - infoWidth) / 2 - tabWidth / 2;
+        tab->m_bounds.m_x = infoWidth + (m_width - infoWidth) / 2 - tabWidth / 2;
     } else {
         TTab* first = m_tabs[0];
         int totalWidth = GetTabWidth() + tabWidth - 1;
-        first->m_x = infoWidth + (m_width - infoWidth) / 2 - totalWidth / 2;
-        tab->m_x = 0;
+        first->m_bounds.m_x = infoWidth + (m_width - infoWidth) / 2 - totalWidth / 2;
+        tab->m_bounds.m_x = 0;
     }
-    tab->m_y = y;
-    tab->m_width = tabWidth;
-    tab->m_height = height;
+    tab->m_bounds.m_y = y;
+    tab->m_bounds.m_width = tabWidth;
+    tab->m_bounds.m_height = height;
     AddToFront(window);
     m_tabs.addElement(tab);
     for (int index = 0; index < m_tabs.size() - 1; ++index) {
-        m_tabs[index + 1]->m_x = m_tabs[index]->m_x + m_tabs[index]->m_width - 1;
+        m_tabs[index + 1]->m_bounds.m_x = m_tabs[index]->m_bounds.m_x + m_tabs[index]->m_bounds.m_width - 1;
     }
     window->ClearFlags(0x2001);
     window->SetLayoutType(Window::LAYOUT_NONE);
@@ -185,7 +188,7 @@ int CTabWindow::GetTabWidth()
     int result = 0;
     // Size read in the loop test (not cached): keeps the original indexed loop form (b117-inl).
     for (int index = 0; index < m_tabs.size(); ++index) {
-        result += m_tabs[index]->m_width - 1;
+        result += m_tabs[index]->m_bounds.m_width - 1;
     }
     return result;
 }
@@ -199,7 +202,7 @@ void CTabWindow::OnPointerEvent(Event& event)
     int y = event.m_param2;
     for (int index = 0; index < m_tabs.size(); ++index) {
         TTab* tab = m_tabs[index];
-        if (x > tab->m_x && x < tab->m_x + tab->m_width && y > tab->m_y && y < tab->m_y + tab->m_height) {
+        if (x > tab->m_bounds.m_x && x < tab->m_bounds.m_x + tab->m_bounds.m_width && y > tab->m_bounds.m_y && y < tab->m_bounds.m_y + tab->m_bounds.m_height) {
             SetCurrTab(index, true);
         }
     }
@@ -247,16 +250,16 @@ void CTabWindow::Paint(com::glu::platform::graphics::ICGraphics2d& graphics)
         com::glu::platform::graphics::ICRenderSurface* left = m_images[1].GetSurface();
         com::glu::platform::graphics::ICRenderSurface* middle = m_images[2].GetSurface();
         com::glu::platform::graphics::ICRenderSurface* right = m_images[3].GetSurface();
-        DrawLineImageHoriz(graphics, left, middle, right, tab->m_x, tab->m_y, tab->m_width);
+        DrawLineImageHoriz(graphics, left, middle, right, tab->m_bounds.m_x, tab->m_bounds.m_y, tab->m_bounds.m_width);
         if (tab->m_name.ByteSize() == 0 || tab->m_image.m_resource == NULL) {
-            DrawFontText(graphics, m_font, tab->m_name.c_str(), tab->m_x + tab->m_width / 2,
-                          tab->m_y + tab->m_height / 2, 36);
+            DrawFontText(graphics, m_font, tab->m_name.c_str(), tab->m_bounds.m_x + tab->m_bounds.m_width / 2,
+                          tab->m_bounds.m_y + tab->m_bounds.m_height / 2, 36);
             if (tab->m_image.m_resource == NULL) {
                 continue;
             }
         }
         com::glu::platform::graphics::ICRenderSurface* image = tab->m_image.GetSurface();
-        DrawImage(graphics, image, tab->m_x + tab->m_width / 2, tab->m_y + tab->m_height, 20, 0);
+        DrawImage(graphics, image, tab->m_bounds.m_x + tab->m_bounds.m_width / 2, tab->m_bounds.m_y + tab->m_bounds.m_height, 20, 0);
     }
     com::glu::platform::graphics::ICRenderSurface* line = m_images[10].GetSurface();
     int lineX = m_x;
@@ -271,19 +274,19 @@ void CTabWindow::Paint(com::glu::platform::graphics::ICGraphics2d& graphics)
         com::glu::platform::graphics::ICRenderSurface* left = m_images[4].GetSurface();
         com::glu::platform::graphics::ICRenderSurface* middle = m_images[5].GetSurface();
         com::glu::platform::graphics::ICRenderSurface* right = m_images[6].GetSurface();
-        DrawLineImageHoriz(graphics, left, middle, right, tab->m_x, tab->m_y, tab->m_width);
-        DrawFontText(graphics, m_font, tab->m_name.c_str(), tab->m_x + tab->m_width / 2,
-                      tab->m_y + tab->m_height / 2, 36);
+        DrawLineImageHoriz(graphics, left, middle, right, tab->m_bounds.m_x, tab->m_bounds.m_y, tab->m_bounds.m_width);
+        DrawFontText(graphics, m_font, tab->m_name.c_str(), tab->m_bounds.m_x + tab->m_bounds.m_width / 2,
+                      tab->m_bounds.m_y + tab->m_bounds.m_height / 2, 36);
     } else {
-        int tabY = tab->m_y;
+        int tabY = tab->m_bounds.m_y;
         int selectedHeight = ImageHeight(m_images[7].GetSurface());
         int normalHeight = ImageHeight(m_images[2].GetSurface());
         com::glu::platform::graphics::ICRenderSurface* left = m_images[9].GetSurface();
         com::glu::platform::graphics::ICRenderSurface* middle = m_images[7].GetSurface();
         com::glu::platform::graphics::ICRenderSurface* right = m_images[8].GetSurface();
-        DrawLineImageHoriz(graphics, left, middle, right, tab->m_x, tabY - selectedHeight + normalHeight, tab->m_width);
-        int textX = tab->m_x + tab->m_width / 2;
-        int textY = tab->m_y;
+        DrawLineImageHoriz(graphics, left, middle, right, tab->m_bounds.m_x, tabY - selectedHeight + normalHeight, tab->m_bounds.m_width);
+        int textX = tab->m_bounds.m_x + tab->m_bounds.m_width / 2;
+        int textY = tab->m_bounds.m_y;
         com::glu::platform::graphics::CFont* font = m_font;
         const wchar_t* name = tab->m_name.c_str();
         int margin = SScreenAdaptingConstant(5, 10)();
@@ -291,7 +294,7 @@ void CTabWindow::Paint(com::glu::platform::graphics::ICGraphics2d& graphics)
     }
     if (tab->m_image.m_resource != NULL) {
         com::glu::platform::graphics::ICRenderSurface* image = tab->m_image.GetSurface();
-        DrawImage(graphics, image, tab->m_x + tab->m_width / 2, tab->m_y + tab->m_height, 20, 0);
+        DrawImage(graphics, image, tab->m_bounds.m_x + tab->m_bounds.m_width / 2, tab->m_bounds.m_y + tab->m_bounds.m_height, 20, 0);
     }
     if (m_showInfo) {
         DrawInfoTab(graphics);
@@ -304,10 +307,10 @@ void CTabWindow::DrawInfoTab(com::glu::platform::graphics::ICGraphics2d& graphic
     com::glu::platform::graphics::ICRenderSurface* middle = m_images[7].GetSurface();
     com::glu::platform::graphics::ICRenderSurface* right = m_images[8].GetSurface();
     int y = m_y;
-    int x = m_infoTab->m_x;
+    int x = m_infoTab->m_bounds.m_x;
     int selectedHeight = ImageHeight(m_images[7].GetSurface());
     int normalHeight = ImageHeight(m_images[2].GetSurface());
-    DrawLineImageHoriz(graphics, left, middle, right, x, y - selectedHeight + normalHeight, m_infoTab->m_width);
+    DrawLineImageHoriz(graphics, left, middle, right, x, y - selectedHeight + normalHeight, m_infoTab->m_bounds.m_width);
 }
 
 CTabWindow::~CTabWindow()
@@ -342,11 +345,11 @@ void CTabWindow::SetTabsWidthByWindowWidth()
     int spacing = SScreenAdaptingConstant(7, 20)();
     int tabWidth = (width - spacing * count) / count;
     TTab* first = m_tabs[0];
-    first->m_x = m_width / 2 - (tabWidth * count) / 2;
-    first->m_width = tabWidth;
+    first->m_bounds.m_x = m_width / 2 - (tabWidth * count) / 2;
+    first->m_bounds.m_width = tabWidth;
     for (int index = 1; index < m_tabs.size(); ++index) {
         TTab* tab = m_tabs[index];
-        tab->m_x = m_tabs[index - 1]->m_x + tabWidth - 1;
-        tab->m_width = tabWidth;
+        tab->m_bounds.m_x = m_tabs[index - 1]->m_bounds.m_x + tabWidth - 1;
+        tab->m_bounds.m_width = tabWidth;
     }
 }

@@ -39,8 +39,8 @@ public:
     struct SPersonsGroup {
         SPersonsGroup()
         {
-            m_minDelayMs = 0;
             m_maxDelayMs = 0;
+            m_minDelayMs = 0;
         }
         XString m_name;            // 0x00
         int m_minDelayMs;          // 0x04

@@ -361,10 +361,12 @@ unsigned char CRenderSurface::CreateAndInitializeReferenceAndSecondaryBuffers(co
                 compatible = 0;
             }
             if (compatible) {
+                unsigned short width = description.m_width;
+                unsigned short height = description.m_height;
                 m_flags = flags | Flag_Reference;
                 m_palette = palette;
                 m_referenceSurface = surface;
-                CreateAndInitializeSecondaryBuffers(formats, description.m_width, description.m_height, noMemory);
+                CreateAndInitializeSecondaryBuffers(formats, width, height, noMemory);
                 result = compatible;
             }
         }

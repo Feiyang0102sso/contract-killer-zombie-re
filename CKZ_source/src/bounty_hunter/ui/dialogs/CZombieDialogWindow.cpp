@@ -163,39 +163,46 @@ void CZombieDialogWindow::OnStartupEasy()
 
 SGButton* CZombieDialogWindow::CreateButton(EDialogButton type)
 {
-    if (type == 7) {
-        SGButton* button = new SGButton(2, 0, 10, 11);
-        button->SetText(ResString("IDS_EQUIP_BUTTON"), (eGameFont)26);
-        return button;
-    }
-    if (type == 20) {
-        SGButton* button = new SGButton(2, 0, 16, 17);
+    // b147: the button is created first (compared 20, then 7), then the caption switch;
+    // type 7 shares the IDS_EQUIP_BUTTON caption block with type 6.
+    SGButton* button;
+    switch (type) {
+    case 7:
+        button = new SGButton(2, 0, 10, 11);
+        break;
+    case 20: {
+        button = new SGButton(2, 0, 16, 17);
         TextWindow* text = button->SetText(ResString("IDS_DIALOG_BUTTON_REVIVE"), (eGameFont)29);
         text->SetAlign(0x21);
         text->SetOutsetSpacing(0, 0, 0, SScreenAdaptingConstant(15)());
         return button;
     }
-    SGButton* button = new SGButton(2, 0, 0, 1);
+    default:
+        button = new SGButton(2, 0, 0, 1);
+        break;
+    }
+    // b147: case order follows the original block layout.
     switch (type) {
-    case 1: button->SetText(ResString("IDS_SK_OK"), (eGameFont)26); break;
-    case 2: button->SetText(ResString("IDS_DIALOG_BUTTON_YES"), (eGameFont)26); break;
-    case 3: button->SetText(ResString("IDS_DIALOG_BUTTON_NO"), (eGameFont)26); break;
+    case 6:
+    case 7: button->SetText(ResString("IDS_EQUIP_BUTTON"), (eGameFont)26); break;
+    case 5: button->SetText(ResString("IDS_DIALOG_BUTTON_BUY"), (eGameFont)26); break;
+    case 17: button->SetText(ResString("IDS_DIALOG_BUTTON_BUY"), (eGameFont)26); break;
+    case 10: button->SetText(ResString("IDS_DIALOG_BUTTON_ACCEPT"), (eGameFont)26); break;
     case 4:
         m_hasIgnoreButton = true;
         button->SetText(ResString("IDS_DIALOG_BUTTON_IGNORE"), (eGameFont)26);
         break;
-    case 5: button->SetText(ResString("IDS_DIALOG_BUTTON_BUY"), (eGameFont)26); break;
-    case 6: button->SetText(ResString("IDS_EQUIP_BUTTON"), (eGameFont)26); break;
+    case 2: button->SetText(ResString("IDS_DIALOG_BUTTON_YES"), (eGameFont)26); break;
+    case 3: button->SetText(ResString("IDS_DIALOG_BUTTON_NO"), (eGameFont)26); break;
+    case 1: button->SetText(ResString("IDS_SK_OK"), (eGameFont)26); break;
     case 8: button->SetText(ResString("IDS_MISSION_INFO_BUTTON_START"), (eGameFont)26); break;
     case 9: button->SetText(ResString("IDS_MISSION_INFO_BUTTON_PLAY"), (eGameFont)26); break;
-    case 10: button->SetText(ResString("IDS_DIALOG_BUTTON_ACCEPT"), (eGameFont)26); break;
     case 11: button->SetText(ResString("IDS_SAVE_CONFLICT_LOCAL_BUTTON"), (eGameFont)26); break;
     case 12: button->SetText(ResString("IDS_SAVE_CONFLICT_SERVER_BUTTON"), (eGameFont)26); break;
     case 13: button->SetText(ResString("IDS_DIALOG_BUTTON_LATER"), (eGameFont)26); break;
     case 14: button->SetText(ResString("IDS_RECONNECT"), (eGameFont)26); break;
     case 15: button->SetText(ResString("IDS_PLAY_OFFLINE_GSERVE"), (eGameFont)26); break;
     case 16: button->SetText(ResString("IDS_RECOMMEND_WEAPON_BUTTON"), (eGameFont)26); break;
-    case 17: button->SetText(ResString("IDS_DIALOG_BUTTON_BUY"), (eGameFont)26); break;
     case 18: button->SetText(ResString("IDS_DIALOG_BUTTON_SHOP_NOW"), (eGameFont)28); break;
     case 19: button->SetText(ResString("IDS_DIALOG_BUTTON_NEXT_WAVE"), (eGameFont)26); break;
     }

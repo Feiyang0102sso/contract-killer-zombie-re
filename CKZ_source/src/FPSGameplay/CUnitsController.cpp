@@ -345,7 +345,7 @@ void CUnitsController::AvoidCollision(CUnit* unit)
         ObstaclesContainer::Static& obstacle = unit->m_body.m_obstacles.m_static[index];
         bool inside = false;
         vec3 displacement = MathLib::DistanceToSegment(unit->m_body.m_position,
-            obstacle.m_first, obstacle.m_second, inside);
+            obstacle.m_endpoints[0], obstacle.m_endpoints[1], inside);
         if (!inside) {
             continue;
         }
@@ -467,11 +467,10 @@ int CUnitsController::Shot(float x, float y, const CDH_Weapon* weapon, const CCo
             continue;
         }
         ++objectHits;
-        CSceneObject* object = m_objects[index];
-        vec3 difference = object->m_position - m_game->GetCurrentCameraPos();
+        vec3 difference = m_objects[index]->m_position - m_game->GetCurrentCameraPos();
         float square = difference.LengthSqr();
         float distance = MathLib::InvSqrt(square) * square;
-        object->ReceivedDamage(weapon->GetShotDamage(distance), 0.0f);
+        m_objects[index]->ReceivedDamage(weapon->GetShotDamage(distance), 0.0f);
     }
     return pickedCount + objectHits;
 }
@@ -670,6 +669,9 @@ void CUnitsController::AddListener(Listener* listener)
 bool CUnitsController::RemoveListener(Listener* listener)
 {
     unsigned int count = m_listeners.size();
+    if (count == 0) {
+        return false;
+    }
     unsigned int index = 0;
     while (index < count && m_listeners[index] != listener) {
         ++index;

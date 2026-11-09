@@ -115,10 +115,10 @@ void CNGSServerRequest::HandleUpdate(int elapsedMs)
     // the timeout below applies to it).
     CObjectMap* response = NULL;
     CNGSServerRequest* request = NULL;
-    CLinkListNode* node = ms_ServerRequestsTable.m_head;
+    CLinkListNode* node = ms_ServerRequestsTable.GetHead();
     while (node != NULL) {
-        CLinkListNode* next = node->m_next;
-        request = (CNGSServerRequest*)node->m_data;
+        CLinkListNode* next = node->GetNext();
+        request = (CNGSServerRequest*)node->GetData();
         if (CNetMessageQueue_gServe::GetInstance()->fetchMessage(&response, request->m_messageId)) {
             if (response != NULL) {
                 RemoveMessageIDFromQueuedList(response->m_messageId);

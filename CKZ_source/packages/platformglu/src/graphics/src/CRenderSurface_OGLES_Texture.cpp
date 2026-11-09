@@ -167,8 +167,9 @@ void CRenderSurface_OGLES_Texture::InitializeTextureObjects()
     unsigned int tileHeight = description.m_maxRenderTargetHeight;
 
     unsigned int imageWidth = buffer->m_imageWidth;
-    unsigned short columns = imageWidth / (unsigned short)tileWidth;
+    // b146: the original computes the remainder before the quotient (__umodsi3 then __udivsi3)
     unsigned int lastColumnWidth = imageWidth % (unsigned short)tileWidth;
+    unsigned short columns = imageWidth / (unsigned short)tileWidth;
     if (lastColumnWidth != 0) {
         columns++;
     } else if (imageWidth < (unsigned short)tileWidth) {
@@ -182,8 +183,8 @@ void CRenderSurface_OGLES_Texture::InitializeTextureObjects()
     }
 
     unsigned int imageHeight = buffer->m_imageHeight;
-    unsigned short rows = imageHeight / (unsigned short)tileHeight;
     unsigned int lastRowHeight = imageHeight % (unsigned short)tileHeight;
+    unsigned short rows = imageHeight / (unsigned short)tileHeight;
     if (lastRowHeight != 0) {
         rows++;
     } else if (imageHeight < (unsigned short)tileHeight) {

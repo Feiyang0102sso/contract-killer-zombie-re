@@ -89,7 +89,7 @@ static const int kRetryTime = 15000;                    // ms
         } else {
             gluAdvertBannerViewController = [[AdMarvelRootController alloc] init];
             gluAdvertBannerView = [[AdMarvelView createAdMarvelViewWithDelegate:self prefetchAd:YES] retain];
-            [gluAdvertBannerViewController setView:gluAdvertBannerView];
+            gluAdvertBannerViewController.view = gluAdvertBannerView;    // b147: property syntax (loads the receiver before the value, like the original)
         }
         [gluAdvertBannerView setAutoresizingMask:UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin];
 

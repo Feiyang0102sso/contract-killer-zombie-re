@@ -43,7 +43,13 @@ void CBH_Button::OnPointerEvent(Event& event)
             }
         }
     }
-    if (event.m_type == Event::POINTER_PRESSED) {
+    // b147: original block order is dragged, pressed, released.
+    if (event.m_type == Event::POINTER_DRAGGED) {
+        if (!m_toggle) {
+            m_pressed = hit;
+        }
+        event.Clear();
+    } else if (event.m_type == Event::POINTER_PRESSED) {
         if (m_toggle) {
             m_pressed = !m_pressed;
             if (hit == 1) {
@@ -69,11 +75,6 @@ void CBH_Button::OnPointerEvent(Event& event)
             FireCommand();
             event.Clear();
         }
-    } else if (event.m_type == Event::POINTER_DRAGGED) {
-        if (!m_toggle) {
-            m_pressed = hit;
-        }
-        event.Clear();
     }
 }
 

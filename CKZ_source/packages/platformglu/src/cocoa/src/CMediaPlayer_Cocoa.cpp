@@ -851,7 +851,8 @@ unsigned char CMediaPlayer_Cocoa::StreamStart()
     if (alGetError() == AL_NO_ERROR) {
         alGenSources(1, &m_streamSource);
     }
-    if (alGetError() == AL_NO_ERROR) {
+    ALenum error = alGetError();
+    if (error == AL_NO_ERROR) {
         // A plain stereo stream at the listener
         alSource3f(m_streamSource, AL_POSITION, 0.0f, 0.0f, 0.0f);
         alSource3f(m_streamSource, AL_VELOCITY, 0.0f, 0.0f, 0.0f);
@@ -859,7 +860,6 @@ unsigned char CMediaPlayer_Cocoa::StreamStart()
         alSourcef(m_streamSource, AL_ROLLOFF_FACTOR, 0.0f);
         alSourcei(m_streamSource, AL_SOURCE_RELATIVE, AL_TRUE);
 
-        bool queued = true;
         for (int index = 0; index < StreamBufferCount; index++) {
             FillBuffer(index);
             alBufferData(m_streamBuffers[index], m_streamFormat, m_streamData[index], GetBufferSize(), m_sampleRate);
@@ -867,22 +867,23 @@ unsigned char CMediaPlayer_Cocoa::StreamStart()
                 alSourceQueueBuffers(m_streamSource, 1, &m_streamBuffers[index]);
             }
             if (alGetError() != AL_NO_ERROR) {
-                queued = false;
-                break;
+                goto play;
             }
         }
-        if (queued) {
-            m_streamThreadStopped = 0;
-            pthread_create(&m_streamThread, NULL, ThreadProc, this);
-        }
+    }
+    if (error == AL_NO_ERROR) {
+        m_streamThreadStopped = 0;
+        pthread_create(&m_streamThread, NULL, ThreadProc, this);
     }
 
+play:
     alSourcePlay(m_streamSource);
-    m_streaming = (alGetError() == AL_NO_ERROR);
-    if (!m_streaming) {
+    unsigned char streaming = (alGetError() == AL_NO_ERROR);
+    m_streaming = streaming;
+    if (!streaming) {
         StreamStop();
     }
-    return m_streaming;
+    return streaming;
 }
 
 void CMediaPlayer_Cocoa::StreamStop()
@@ -1163,10 +1164,9 @@ public:
 
         // The file magic cookie, if any, goes to the queue
         UInt32 size = sizeof(UInt32);
-        result = AudioFileGetPropertyInfo(fileInfo->mAFID, kAudioFilePropertyMagicCookieData, &size, NULL);
-        if (result == noErr && size != 0) {
+        OSStatus cookieStatus = AudioFileGetPropertyInfo(fileInfo->mAFID, kAudioFilePropertyMagicCookieData, &size, NULL);
+        if (cookieStatus == noErr && size != 0) {
             char* cookie = new char[size];
-            result = noErr;
             if (cookie != NULL) {
                 result = AudioFileGetProperty(fileInfo->mAFID, kAudioFilePropertyMagicCookieData, &size, cookie);
                 if (result == noErr) {

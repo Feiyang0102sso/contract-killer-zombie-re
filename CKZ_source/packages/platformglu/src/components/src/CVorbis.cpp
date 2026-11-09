@@ -68,8 +68,8 @@ void CVorbisBufferStream::GetOvCallbacks(ov_callbacks& callbacks)
 {
     callbacks.read_func = _read;
     callbacks.seek_func = _seek;
-    callbacks.close_func = _close;
     callbacks.tell_func = _tell;
+    callbacks.close_func = _close;
 }
 
 void WriteWavHeader(COutputStream& stream, unsigned short channels, unsigned short bitsPerSample,

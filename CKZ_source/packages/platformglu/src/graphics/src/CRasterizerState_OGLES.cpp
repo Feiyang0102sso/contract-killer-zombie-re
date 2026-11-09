@@ -14,12 +14,9 @@ CRasterizerState_v1_OGLES::CRasterizerState_v1_OGLES()
 
 void CRasterizerState_v1_OGLES::EnableBlending(unsigned char enable)
 {
-    unsigned short* blending = (unsigned short*)m_table.GetEntryData(m_blendingIndex);
-    unsigned short flag = 0;
-    if (enable) {
-        flag = 0x8000;
-    }
-    blending[1] = flag;
+    unsigned int* blending = (unsigned int*)m_table.GetEntryData(m_blendingIndex);
+    unsigned int flag = enable ? 0x80000000u : 0;
+    blending[0] = (blending[0] & 0xffff) | flag;
     // the original links the entry into the *scissor* slot here (bug, kept)
     unsigned char** level = m_stateLevels[State_Scissor];
     if (level != NULL) {
@@ -268,19 +265,20 @@ void CRasterizerState_v1_OGLES::SyncBackfaceCulling()
 {
     CGraphics_OGLES* graphics = (CGraphics_OGLES*)m_graphics;
     CullState state = *(CullState*)m_table.GetEntryData(m_backfaceCullingIndex);
+    // b147: case order as in the original (compare chain 2, 1, 0; blocks None, Clockwise, CounterClockwise)
     switch (state) {
-    case CullState_CounterClockwise:
-        graphics->m_glState.EnableCullFace(1);
-        graphics->m_glState.CullFace(GL_BACK);
-        graphics->m_glState.FrontFace(GL_CCW);
+    case CullState_None:
+        graphics->m_glState.EnableCullFace(0);
         break;
     case CullState_Clockwise:
         graphics->m_glState.EnableCullFace(1);
         graphics->m_glState.CullFace(GL_BACK);
         graphics->m_glState.FrontFace(GL_CW);
         break;
-    case CullState_None:
-        graphics->m_glState.EnableCullFace(0);
+    case CullState_CounterClockwise:
+        graphics->m_glState.EnableCullFace(1);
+        graphics->m_glState.CullFace(GL_BACK);
+        graphics->m_glState.FrontFace(GL_CCW);
         break;
     }
 }
@@ -324,6 +322,9 @@ static inline GLenum CRasterizerState_v1_OGLES_GetGLBlendFactor(unsigned int fac
     case ICRasterizerState::BlendFactor_SrcColor:
         glFactor = GL_SRC_COLOR;
         break;
+    case ICRasterizerState::BlendFactor_Zero:  // b147: listed in the original's jump table (10 entries)
+        glFactor = GL_ZERO;
+        break;
     default:
         glFactor = GL_ZERO;
         break;
@@ -335,15 +336,16 @@ void CRasterizerState_v1_OGLES::SyncBlending()
 {
     CGraphics_OGLES* graphics = (CGraphics_OGLES*)m_graphics;
     unsigned int* blending = (unsigned int*)m_table.GetEntryData(m_blendingIndex);
-    if ((blending[0] & 0x80000000) == 0) {
+    // b147: the original tests the enable bit with the blending branch first
+    if (blending[0] & 0x80000000) {
+        unsigned int factors = blending[1];
+        GLenum source = CRasterizerState_v1_OGLES_GetGLBlendFactor((factors >> 16) & 0xff);
+        GLenum destination = CRasterizerState_v1_OGLES_GetGLBlendFactor(factors & 0xff);
+        graphics->m_glState.EnableBlend(1);
+        graphics->m_glState.BlendFunc(source, destination);
+    } else {
         graphics->m_glState.EnableBlend(0);
-        return;
     }
-    unsigned int factors = blending[1];
-    GLenum source = CRasterizerState_v1_OGLES_GetGLBlendFactor((factors >> 16) & 0xff);
-    GLenum destination = CRasterizerState_v1_OGLES_GetGLBlendFactor(factors & 0xff);
-    graphics->m_glState.EnableBlend(1);
-    graphics->m_glState.BlendFunc(source, destination);
 }
 
 void CRasterizerState_v1_OGLES::SyncDepth()

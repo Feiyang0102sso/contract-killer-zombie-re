@@ -32,12 +32,14 @@ static const int DEFAULT_DIALOG_HEIGHT = 155;
 
     // follow the device orientation in landscape
     ICCore::eDeviceOrientation orientation = CApplet::m_pCore->GetDeviceOrientation();
-    if (orientation == ICCore::DeviceOrientation_LandscapeRight) {
-        transform = CGAffineTransformConcat(CGAffineTransformMakeRotation(-M_PI_2),
-                                            CGAffineTransformMakeTranslation(-m_offset, 0));
-    } else if (orientation == ICCore::DeviceOrientation_LandscapeLeft) {
-        transform = CGAffineTransformConcat(CGAffineTransformMakeRotation(M_PI_2),
-                                            CGAffineTransformMakeTranslation(m_offset, 0));
+    // b147: LandscapeLeft written first (block order of the original); the rotation is a named local
+    // (the original copies it into an 8-byte aligned argument temporary)
+    if (orientation == ICCore::DeviceOrientation_LandscapeLeft) {
+        CGAffineTransform rotation = CGAffineTransformMakeRotation(M_PI_2);
+        transform = CGAffineTransformConcat(rotation, CGAffineTransformMakeTranslation(m_offset, 0));
+    } else if (orientation == ICCore::DeviceOrientation_LandscapeRight) {
+        CGAffineTransform rotation = CGAffineTransformMakeRotation(-M_PI_2);
+        transform = CGAffineTransformConcat(rotation, CGAffineTransformMakeTranslation(-m_offset, 0));
     }
 }
 

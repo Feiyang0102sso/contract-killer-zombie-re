@@ -151,12 +151,10 @@ AppSettings::~AppSettings()
 int AppSettings::ReadHeader(ReadStream* stream)
 {
     char header[sizeof(settingsMarkStr)];
-    int result = 0;
     stream->Read((unsigned char*)header, sizeof(settingsMarkStr));
-    if (!stream->m_error) {
-        if (strcmp(header, settingsMarkStr) == 0) {
-            result = 1;
-        }
+    int result = 0;
+    if (stream->m_error == 0) {
+        result = strcmp(header, settingsMarkStr) == 0;
     }
     return result;
 }

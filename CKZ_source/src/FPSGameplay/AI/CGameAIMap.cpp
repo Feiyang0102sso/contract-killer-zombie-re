@@ -386,12 +386,12 @@ int CGameAIMap::GetHideBehaviour(int pointId, int cameraId) const
 void CGameAIMap::ConstructPath(CPath* path, SGameAIPoint* point)
 {
     float edgeDistance = 0.0f;
-    while (point != NULL) {
-        SGameAIPoint* parent = point->m_parent;
-        path->AddPointInRadius(point->m_position, point->m_id, edgeDistance, point->m_radius);
+    while (SGameAIPoint* current = point) {
+        SGameAIPoint* parent = current->m_parent;
+        path->AddPointInRadius(current->m_position, current->m_id, edgeDistance, current->m_radius);
         if (parent != NULL) {
             for (int index = 0; index < parent->m_edges.size(); index++) {
-                if (point == parent->m_edges[index].m_target) {
+                if (current == parent->m_edges[index].m_target) {
                     edgeDistance = parent->m_edges[index].m_distance;
                     break;
                 }
@@ -435,10 +435,10 @@ void CGameAIMap::OpenListPushBack(SGameAIPoint* point, SGameAIPoint* end, SGameA
 
 CGameAIMap::SGameAIPoint* CGameAIMap::OpenListPop()
 {
+    int bestIndex = 0;
     SGameAIPoint* bestPoint = NULL;
     int count = m_openList.m_size;
     if (count > 0) {
-        int bestIndex = 0;
         bestPoint = m_openList.m_data[0];
         if (count >= 2) {
             float bestCost = bestPoint->m_pathDistance + bestPoint->m_heuristicDistance;

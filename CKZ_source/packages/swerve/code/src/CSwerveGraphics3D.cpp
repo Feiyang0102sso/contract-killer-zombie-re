@@ -55,7 +55,6 @@ unsigned char CSwerveGraphics3D::Init()
     int error = swerve->m_swerve->m_functions->CreateObject(SwerveObjectType_Graphics3D, (void**)&m_graphics3D);
     if (error == 0) {
         memset(&m_environment, 0, sizeof(m_environment));
-        error = 1;
         if (malij297_GetEnvironment(&m_environment)) {
             m_dummySurface = GetMutableSurface(&dummyImage);
             if (m_dummySurface != NULL) {
@@ -67,9 +66,14 @@ unsigned char CSwerveGraphics3D::Init()
                     listener->m_handle = handle;
                     listener->m_callback = CSwerveGraphics3D_EventCB;
                     m_listener->Register(Event_GraphicsContextLost, 0x7fffffff);
-                    error = 0;
+                } else {
+                    error = 1;
                 }
+            } else {
+                error = 1;
             }
+        } else {
+            error = 1;
         }
     }
     return error == 0;
@@ -125,12 +129,12 @@ graphics::ICRenderSurface* CSwerveGraphics3D::GetMutableSurface(const malij297_I
 
     // a new target surface of the image size (the parameters are read from a stream)
     graphics::ICRenderSurface::InitParam params[6];
-    params[0].m_key = 6;
+    int format = 0;
     if (image->m_format == 100) {
-        params[0].m_value = 0xf4404;
-    } else {
-        params[0].m_value = 0;
+        format = 0xf4404;
     }
+    params[0].m_key = 6;
+    params[0].m_value = format;
     params[1].m_key = 7;
     params[1].m_value = 0x5a0102;
     params[2].m_key = 4;
@@ -148,18 +152,19 @@ graphics::ICRenderSurface* CSwerveGraphics3D::GetMutableSurface(const malij297_I
         core::ICStdUtil::SPrintF_S(name, sizeof(name), "SWV_%d_%d_%d_%08X", image->m_width, image->m_height,
                                    image->m_format, image->m_id);
         systems::ICResourceManager::CreationInfoStr info;
-        info.m_mimeType = ResourceType_RenderSurface;
-        info.m_stream = &stream;
         info.m_name = name;
+        info.m_stream = &stream;
+        info.m_mimeType = ResourceType_RenderSurface;
         systems::CResource* resource;
         systems::ICResourceManager* resourceManager = (systems::ICResourceManager*)CApplet::m_pApp->m_resourceManager;
         if (resourceManager->CreateResource(info, &resource) == 3) {
-            created = (graphics::ICRenderSurface*)resource->GetData();
-            if (created != NULL) {
+            graphics::ICRenderSurface* surfaceData = (graphics::ICRenderSurface*)resource->GetData();
+            if (surfaceData != NULL) {
                 MutableSurface* surface = new MutableSurface;
                 strncpy(surface->m_name, name, sizeof(surface->m_name));
                 surface->m_name[sizeof(surface->m_name) - 1] = 0;
-                surface->m_surface = created;
+                created = surfaceData;
+                surface->m_surface = surfaceData;
                 m_mutableSurfaces.Add(surface);
             }
         }

@@ -363,7 +363,7 @@ CObjectMapArray* GetObjectMapRepresentationOfIdList(CVector<long long>& ids)
     for (int index = 0; index < count; index++) {
         CObjectMapObject* entry = new CObjectMapObject();
         entry->addEntry(CStrWChar(NGS_ID_TOKEN), new CObjectMapInt(ids[index]));
-        list->m_values.Add(entry);
+        list->addEntry(entry);    // b147: inline addEntry (parameter slot in the original frame)
     }
     return list;
 }

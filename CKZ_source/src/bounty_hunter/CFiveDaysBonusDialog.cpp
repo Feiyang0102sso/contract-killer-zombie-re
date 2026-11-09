@@ -43,9 +43,9 @@ void CFiveDaysBonusDialog::CreateMessage(int day)
         daysText.Assign(Window::ResString("IDS_FIVE_DAYS_BONUS_FIRST_DAY"));
     } else {
         // The format string is a temporary of the same full expression (original slot order).
-        daysText.Assign(XString::Format(Window::ResString("IDS_DAILY_BONUS_TEXT_DAYS").m_data, day + 1));
+        daysText.Assign(XString::Format(Window::ResString("IDS_DAILY_BONUS_TEXT_DAYS").c_str(), day + 1));
     }
-    XString bonusText = XString::Format(Window::ResString("IDS_DAILY_BONUS_BONUS").m_data, bonusName.m_data);
+    XString bonusText = XString::Format(Window::ResString("IDS_DAILY_BONUS_BONUS").c_str(), bonusName.c_str());
     TextWindow* days = new TextWindow();
     TextWindow* bonus = new TextWindow();
     com::glu::platform::graphics::CFont* daysFont = CFontMgr::GetInstance()->GetFont(24);

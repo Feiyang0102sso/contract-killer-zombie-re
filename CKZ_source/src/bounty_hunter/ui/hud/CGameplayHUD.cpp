@@ -322,70 +322,73 @@ void CGameplayHUD::UpdateUnitDirectionArrow()
     if (m_directionUnitId < 0) {
         return;
     }
-    if (m_directionTime <= 0) {
-        m_directionArrow->ClearFlags(1);
-        return;
-    }
-    m_directionTime -= WindowApp::m_instance->m_updateFrameTime;
-    CUnit* unit = m_game->m_unitsController->GetUnitByUniqueId(m_directionUnitId);
-    if (unit == NULL) {
-        return; // The original NULL path keeps the old display; do not hide on our own.
-    }
-    int x;
-    int y;
-    unit->m_body.GetScreenPos(x, y, 1.0f);
-    float markerX;
-    float markerY;
-    int angle;
-    if (x >= 1 && x < WindowApp::m_instance->m_screenWidth) {
-        if (y >= 1 && y < WindowApp::m_instance->m_screenHeight) {
+    // b147: original places the timeout ClearFlags block last (shared with the on-screen exit).
+    if (m_directionTime > 0) {
+        m_directionTime -= WindowApp::m_instance->m_updateFrameTime;
+        CUnit* unit = m_game->m_unitsController->GetUnitByUniqueId(m_directionUnitId);
+        if (unit == NULL) {
+            return; // The original NULL path keeps the old display; do not hide on our own.
+        }
+        int x;
+        int y;
+        unit->m_body.GetScreenPos(x, y, 1.0f);
+        float markerX;
+        float markerY;
+        int angle;
+        // b147: original tests "on screen" as one condition, then re-tests the x range.
+        bool insideX = x >= 1 && x < WindowApp::m_instance->m_screenWidth;
+        if (insideX && y >= 1 && y < WindowApp::m_instance->m_screenHeight) {
             m_directionArrow->ClearFlags(1);
             return;
         }
-        SScreenAdaptingConstant margin(80);
-        int minimum = margin();
-        int width = WindowApp::m_instance->m_screenWidth;
-        int right = width - margin();
-        int clamped = x;
-        if (clamped < minimum) {
-            clamped = minimum;
-        } else if (clamped > right) {
-            clamped = right;
-        }
-        markerX = (float)clamped;
-        if (y <= 0) {
-            markerY = (float)HUD_ARROW_Y();
-            angle = 90;
-        } else {
-            int height = WindowApp::m_instance->m_screenHeight;
-            markerY = (float)(height - HUD_ARROW_Y());
-            angle = 270;
-        }
-    } else {
-        SScreenAdaptingConstant margin(90);
-        int minimum = margin();
-        int height = WindowApp::m_instance->m_screenHeight;
-        int bottom = height - margin();
-        int clamped = y;
-        if (clamped < minimum) {
-            clamped = minimum;
-        } else if (clamped > bottom) {
-            clamped = bottom;
-        }
-        markerY = (float)clamped;
-        if (x <= 0) {
-            markerX = (float)HUD_ARROW_X();
-            angle = 0;
-        } else {
+        if (insideX) {
+            SScreenAdaptingConstant margin(80);
+            int minimum = margin();
             int width = WindowApp::m_instance->m_screenWidth;
-            markerX = (float)(width - HUD_ARROW_X());
-            angle = 180;
+            int right = width - margin();
+            int clamped = x;
+            if (clamped < minimum) {
+                clamped = minimum;
+            } else if (clamped > right) {
+                clamped = right;
+            }
+            markerX = (float)clamped;
+            if (y <= 0) {
+                markerY = (float)HUD_ARROW_Y();
+                angle = 90;
+            } else {
+                int height = WindowApp::m_instance->m_screenHeight;
+                markerY = (float)(height - HUD_ARROW_Y());
+                angle = 270;
+            }
+        } else {
+            SScreenAdaptingConstant margin(90);
+            int minimum = margin();
+            int height = WindowApp::m_instance->m_screenHeight;
+            int bottom = height - margin();
+            int clamped = y;
+            if (clamped < minimum) {
+                clamped = minimum;
+            } else if (clamped > bottom) {
+                clamped = bottom;
+            }
+            markerY = (float)clamped;
+            if (x <= 0) {
+                markerX = (float)HUD_ARROW_X();
+                angle = 0;
+            } else {
+                int width = WindowApp::m_instance->m_screenWidth;
+                markerX = (float)(width - HUD_ARROW_X());
+                angle = 180;
+            }
         }
+        m_directionArrow->m_angle = angle;
+        m_directionArrow->m_markerX = (int)markerX;
+        m_directionArrow->m_markerY = (int)markerY;
+        m_directionArrow->SetFlags(1);
+    } else {
+        m_directionArrow->ClearFlags(1);
     }
-    m_directionArrow->m_angle = angle;
-    m_directionArrow->m_markerX = (int)markerX;
-    m_directionArrow->m_markerY = (int)markerY;
-    m_directionArrow->SetFlags(1);
 }
 
 void CGameplayHUD::UpdateTutorialBlinking()
@@ -662,11 +665,13 @@ void CGameplayHUD::Show(bool visible, float hiddenOpacity)
         opacity = 1.0f;
     }
     m_controlsLayer->SetOpacity(opacity);
-    m_controlsLayer->SetFlags(1);
+    m_controlsLayer->SetFlags(Window::FLAG_VISIBLE);
+    Window* layer = m_controlsLayer;
+    int enabledFlag = Window::FLAG_ENABLED;
     if (visible == 1) {
-        m_controlsLayer->SetFlags(0x2000);
+        layer->SetFlags(enabledFlag);
     } else {
-        m_controlsLayer->ClearFlags(0x2000);
+        layer->ClearFlags(enabledFlag);
         m_firePressed = false;
     }
     m_flag145 = visible;
@@ -700,18 +705,23 @@ void CGameplayHUD::OnScopeSwitched()
 
 void CGameplayHUD::OnCommand(Event& event)
 {
+    // b147: every case clears the event itself; the fire case reuses its zero register
+    // for the inlined Clear() before tail merging, so Clear() is not a shared statement.
     switch (event.m_id) {
     case 0x03412c74:
         ((App*)WindowApp::m_instance)->m_helper->m_swerveGame->RunFovBlur(1.0f, 3000, true);
+        event.Clear();
         break;
     case 0x58611016:
         m_directionUnitId = event.m_param1;
         UpdateUnitDirectionArrow();
         m_directionTime = 1500; // The original first runs Update with the old timer, then writes the new duration.
+        event.Clear();
         break;
     case 0x47b537b6:
         m_firePressed = false;
         m_firePointerId = -1;
+        event.Clear();
         break;
     case 0x31577148:
         {
@@ -720,11 +730,11 @@ void CGameplayHUD::OnCommand(Event& event)
                 switchScope();
             }
         }
+        event.Clear();
         break;
     default:
-        return; // In the original, unknown commands are not forwarded to Window::OnCommand.
+        break; // In the original, unknown commands are not forwarded to Window::OnCommand.
     }
-    event.Clear();
 }
 
 CGameplayHUD::CZoomedScopeWindow::CZoomedScopeWindow() : ViewWindow(swerve::World<CSwerveAssertingErrorHandler>())

@@ -63,8 +63,8 @@ public:
         float factor = (distance - m_nearDistance) / (m_farDistance - m_nearDistance);
         if (factor > 1.0f) {
             factor = 1.0f;
-        } else if (factor <= 0.0f) {
-            factor = 0.0f;
+        } else {
+            factor = (factor < 0.0f) ? 0.0f : factor;
         }
         return (int)((float)nearQuantumMs * (1.0f - factor) + (float)m_farQuantumMS * factor);
     }

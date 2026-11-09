@@ -98,13 +98,15 @@ void CStrWChar::Concatenate(const char* text)
 
 CStrWChar operator+(const CStrWChar& left, const CStrWChar& right)
 {
-    if (left.m_string != NULL && right.m_string != NULL) {
-        CStrWChar joined(left.m_string);
-        joined.Concatenate(right.m_string);
-        return joined.m_string;
-    }
-    const wchar_t* only = left.m_string;
-    if (left.m_string == NULL) {
+    const wchar_t* only = NULL;
+    if (left.m_string != NULL) {
+        if (right.m_string != NULL) {
+            CStrWChar joined(left.m_string);
+            joined.Concatenate(right.m_string);
+            return joined.m_string;
+        }
+        only = left.m_string;
+    } else if (right.m_string != NULL) {
         only = right.m_string;
     }
     return only;
@@ -126,13 +128,15 @@ CStrWChar operator+(const CStrWChar& left, const wchar_t* right)
 
 CStrWChar operator+(const wchar_t* left, const CStrWChar& right)
 {
-    if (left != NULL && right.m_string != NULL) {
-        CStrWChar joined(left);
-        joined.Concatenate(right.m_string);
-        return joined.m_string;
-    }
-    const wchar_t* only = left;
-    if (left == NULL) {
+    const wchar_t* only = NULL;
+    if (left != NULL) {
+        if (right.m_string != NULL) {
+            CStrWChar joined(left);
+            joined.Concatenate(right.m_string);
+            return joined.m_string;
+        }
+        only = left;
+    } else if (right.m_string != NULL) {
         only = right.m_string;
     }
     return only;

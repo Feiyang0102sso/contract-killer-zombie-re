@@ -130,14 +130,15 @@ int CBaseScreen::GetTitleBarHeight()
 
 void CBaseScreen::OnCommand(Event& event)
 {
-    if ((unsigned int)event.m_id == 0x8e576746) {
+    // b147: original places the back (0x5f523cd9) block first, so it is written first.
+    if ((unsigned int)event.m_id == 0x5f523cd9) {
+        ReverseEasy(0x200);
+        event.Clear();
+    } else if ((unsigned int)event.m_id == 0x8e576746) {
         CSettingsWindow* settings = new CSettingsWindow(false, false);
         settings->SetLayoutType(LAYOUT_SIMPLE);
         settings->SetAlign(0x24);
         ((App*)WindowApp::m_instance)->m_mainLayer->AddModal(settings);
-        event.Clear();
-    } else if ((unsigned int)event.m_id == 0x5f523cd9) {
-        ReverseEasy(0x200);
         event.Clear();
     }
 }
@@ -146,19 +147,15 @@ void CBaseScreen::SetTitleText(XString text)
 {
     m_title->SetText(text);
     TextWindow* title = m_title;
-    int x;
-    int scale;
     if (m_back != NULL) {
         int left = m_back->m_x;
         int width = m_back->m_width;
-        scale = App::Scale(); // Original keeps this query even though x does not use it.
-        x = left + width + 10;
+        int scale = App::Scale(); // Original keeps this query even though x does not use it.
+        title->SetCorner(left + width + 10, scale * 5);
     } else {
         int left = App::Scale() * 5;
-        scale = App::Scale();
-        x = left * 4;
+        title->SetCorner(left * 4, App::Scale() * 5);
     }
-    title->SetCorner(x, scale * 5);
 }
 
 void CBaseScreen::Init()

@@ -32,13 +32,11 @@ void CPopupController::OnCommand(Event& event)
 {
     int previous = m_skillshotCount;
     switch (event.m_id) {
-    case (int)0xe3735e88:
-        m_skillshotCount = previous + 1;
-        AddPopup(NULL, ResString("IDS_POPUP_HEADSHOT"), Position6, AnimationStyle1, true, 16);
-        event.Clear();
-        break;
-    case 0x6aa69fd2:
-        AddPopup(NULL, ResString("IDS_POPUP_LEVELUP"), Position3, AnimationStyle3, true, 16);
+    case 0x2b46d225:
+        if (m_warningDelayMS <= 0) {
+            m_warningDelayMS = 5000;
+            AddPopup(NULL, ResString("IDS_POPUP_OUT_OF_GRENADES"), Position3, AnimationStyle1, false, 18);
+        }
         event.Clear();
         break;
     case 0x2e501085:
@@ -48,11 +46,13 @@ void CPopupController::OnCommand(Event& event)
         }
         event.Clear();
         break;
-    case 0x2b46d225:
-        if (m_warningDelayMS <= 0) {
-            m_warningDelayMS = 5000;
-            AddPopup(NULL, ResString("IDS_POPUP_OUT_OF_GRENADES"), Position3, AnimationStyle1, false, 18);
-        }
+    case (int)0xe3735e88:
+        m_skillshotCount = previous + 1;
+        AddPopup(NULL, ResString("IDS_POPUP_HEADSHOT"), Position6, AnimationStyle1, true, 16);
+        event.Clear();
+        break;
+    case 0x6aa69fd2:
+        AddPopup(NULL, ResString("IDS_POPUP_LEVELUP"), Position3, AnimationStyle3, true, 16);
         event.Clear();
         break;
     // The skillshot tip keeps the named text; the argument copy is destroyed first, the text itself only after Event.Clear.

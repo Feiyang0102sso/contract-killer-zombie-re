@@ -20,9 +20,11 @@ void CBH_MenuButton::Init()
 
 void CBH_MenuButton::Paint(ICGraphics2d& graphics)
 {
+    // b147: original re-reads m_padding after ImageWidth() and keeps that value for later.
+    int offset = (m_width - m_padding * 2 - ImageWidth(m_image)) / 2;
     int padding = m_padding;
-    int imageX = padding + (m_width - m_padding * 2 - ImageWidth(m_image)) / 2;
-    DrawImage(graphics, m_image, imageX, m_padding, 0, 0);
+    int imageX = padding + offset;
+    DrawImage(graphics, m_image, imageX, padding, 0, 0);
     if (m_blinking && m_blinkImage != NULL) {
         float opacity = MathLib::Fabs((float)((int)((unsigned int)CStdUtil_Cocoa::GetUpTimeMS() % 600) - 300)) / 360.0f + 0.2f;
         BeginBlend(graphics, opacity, 1.0f, 1.0f, 0.0f, true, false);
@@ -63,11 +65,9 @@ void CBH_MenuButton::ReleaseResources()
     m_blinkImage = NULL;
 }
 
-CBH_MenuButton::CBH_MenuButton() : CBH_Button(), m_caption()
+CBH_MenuButton::CBH_MenuButton()
+    : CBH_Button(), m_image(NULL), m_pressedImage(NULL), m_blinkImage(NULL), m_caption()
 {
-    m_image = NULL;
-    m_pressedImage = NULL;
-    m_blinkImage = NULL;
     m_padding = 0;
     m_blinking = false;
     m_blinkCommand = 0;

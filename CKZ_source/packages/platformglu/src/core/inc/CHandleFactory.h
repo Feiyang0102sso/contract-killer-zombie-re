@@ -32,22 +32,19 @@ public:
     static inline CHandleFactory* GetInstance()
     {
         framework::CApp* app = CApplet::m_pApp;
-        CHandleFactory* instance;
         if (app != NULL) {
-            instance = (CHandleFactory*)app->m_cached2c;
-            if (instance == NULL) {
+            if (app->m_cached2c == NULL) {
                 CHandleFactory* found = NULL;
                 app->m_singletons->Find(SingletonId, (void**)&found);
-                instance = found;
+                CHandleFactory* instance = found;
                 if (instance == NULL) {
                     instance = new CHandleFactory();
                 }
                 app->m_cached2c = instance;
             }
-        } else {
-            instance = NULL;
+            return (CHandleFactory*)app->m_cached2c;
         }
-        return instance;
+        return NULL;
     }
 
     /** A new unique handle: counter in bits 0..29, bit 30 set. */

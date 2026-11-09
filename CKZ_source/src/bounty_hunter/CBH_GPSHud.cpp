@@ -84,10 +84,11 @@ CBH_GPSHud::CBH_GPSHud() : CBaseScreen(false, false, true), m_top(), m_bottom()
     m_shop = new CShopBlinkingButton();
     m_shop->SetArchetypeCharacter(1, 0);
     m_shop->SetAnimation(77, 1);
-    m_shop->m_command = 0xc4794df3;
-    m_shop->m_commandParameter1 = -1;
-    m_shop->m_commandParameter2 = 0;
-    m_shop->m_commandParameter3 = 0;
+    CShopBlinkingButton* shop = m_shop;
+    shop->m_command = 0xc4794df3;
+    shop->m_commandParameter1 = -1;
+    shop->m_commandParameter2 = 0;
+    shop->m_commandParameter3 = 0;
     m_shop->SetAlign(0x11);
     TextWindow* caption = new TextWindow();
     {
@@ -120,13 +121,14 @@ void CBH_GPSHud::Update()
 
 void CBH_GPSHud::OnCommand(Event& event)
 {
-    if ((unsigned int)event.m_id == 0x5f523cd9) {
-        event.Clear();
-    } else if ((unsigned int)event.m_id == 0x9720b34a) {
+    // b147: original places the settings block first, so it is written first.
+    if ((unsigned int)event.m_id == 0x9720b34a) {
         CSettingsWindow* settings = new CSettingsWindow(false, false);
         settings->SetLayoutType(LAYOUT_SIMPLE);
         settings->SetAlign(0x24);
         ((App*)WindowApp::m_instance)->m_mainLayer->AddModal(settings);
+        event.Clear();
+    } else if ((unsigned int)event.m_id == 0x5f523cd9) {
         event.Clear();
     } else {
         CBaseScreen::OnCommand(event);

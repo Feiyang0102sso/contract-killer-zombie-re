@@ -210,11 +210,11 @@ CTypedVariableTable::CTypedVariableTable(unsigned int classId)
     m_tableSize = 0;
     m_firstEntryOffset = 0;
     m_entryHeaderSize = 0;
+    m_entryOffsets = NULL;
     m_removed = NULL;
     m_dirty = 0;
-    m_entryData = NULL;
-    m_entryOffsets = NULL;
     m_table = NULL;
+    m_entryData = NULL;
 }
 
 unsigned char CTypedVariableTable::Initialize(unsigned int capacity)

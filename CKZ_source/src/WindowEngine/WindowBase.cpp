@@ -472,10 +472,10 @@ bool Window::IsVisible() const
         (FLAG_INITIALIZED | FLAG_VISIBLE)) {
         return false;
     }
-    if (m_width + m_x <= 0) {
+    if (m_x + m_width <= 0) {
         return false;
     }
-    if (m_height + m_y <= 0) {
+    if (m_y + m_height <= 0) {
         return false;
     }
     int parentWidth;
@@ -1924,7 +1924,8 @@ Window* Window::HandleEvent(Event& event)
         return event.m_handler;
     }
     event.m_handled = false;
-    if ((m_flags & FLAG_CHILDREN_FIRST) == 0) {
+    unsigned char initialFlags = *reinterpret_cast<const unsigned char*>(&m_flags);
+    if ((initialFlags & FLAG_CHILDREN_FIRST) == 0) {
         if (DispatchEvent(event) != 0 || event.m_handled) {
             return event.m_handler;
         }
@@ -1955,7 +1956,7 @@ Window* Window::HandleEvent(Event& event)
                     if (event.m_type == Event::NONE) {
                         return event.m_handler;
                     }
-                    childFlags = child->m_flags;
+                    childFlags = (unsigned char)child->m_flags;
                 }
                 if ((childFlags & FLAG_MODAL) != 0) {
                     return event.m_handler;
@@ -1973,10 +1974,12 @@ Window* Window::HandleEvent(Event& event)
         OnUnhandledEvent(event);
         if (event.m_type == Event::NONE && event.m_handler == NULL) {
             event.m_handler = this;
-            if (type == Event::POINTER_RELEASED) {
+            if (type != Event::POINTER_RELEASED) {
+                if (type == Event::POINTER_PRESSED || type == Event::POINTER_DRAGGED) {
+                    WindowApp::SetPointerCapture((short)pointer, this);
+                }
+            } else {
                 WindowApp::SetPointerCapture((short)pointer, NULL);
-            } else if (type == Event::POINTER_PRESSED || type == Event::POINTER_DRAGGED) {
-                WindowApp::SetPointerCapture((short)pointer, this);
             }
         }
     }
@@ -2780,22 +2783,12 @@ void Window::DrawImage(ICGraphics2d& graphics, ICRenderSurface* surface, int x, 
     // J2ME style transforms: mirror and rotation.
     ICGraphics2d::Flip flip = ICGraphics2d::Flip_None;
     switch (transform) {
-    case 1:
-        flip = ICGraphics2d::Flip_Vertical;
-        break;
-    case 2:
-        flip = ICGraphics2d::Flip_Horizontal;
-        break;
-    case 3:
-        flip = ICGraphics2d::Flip_Both;
-        break;
-    case 4:
-        graphics.Rotate(270.0f);
-        flip = ICGraphics2d::Flip_Horizontal;
-        break;
     case 5:
         graphics.Rotate(90.0f);
         flip = ICGraphics2d::Flip_None;
+        break;
+    case 3:
+        flip = ICGraphics2d::Flip_Both;
         break;
     case 6:
         graphics.Rotate(270.0f);
@@ -2803,6 +2796,16 @@ void Window::DrawImage(ICGraphics2d& graphics, ICRenderSurface* surface, int x, 
         break;
     case 7:
         graphics.Rotate(90.0f);
+        flip = ICGraphics2d::Flip_Horizontal;
+        break;
+    case 1:
+        flip = ICGraphics2d::Flip_Vertical;
+        break;
+    case 2:
+        flip = ICGraphics2d::Flip_Horizontal;
+        break;
+    case 4:
+        graphics.Rotate(270.0f);
         flip = ICGraphics2d::Flip_Horizontal;
         break;
     }

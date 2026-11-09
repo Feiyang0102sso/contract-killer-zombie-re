@@ -262,22 +262,22 @@ void AnimatedWindow::OnStartupEasy()
 
 void AnimatedWindow::OnEasyFinished()
 {
-    if (m_closing == 2) {
-        Window::Close();
-        return;
-    }
+    // b147: original compares closing 2 before 0 and mode 2 before 1, i.e. the
+    // "0" and "mode 1" branches are written first.
     if (m_closing == 0) {
         m_closing = 1;
-        if ((int)m_mode == 2) {
+        if ((int)m_mode == 1) {
+            Window::Close();
+        } else if ((int)m_mode == 2) {
             if (m_close.m_enabled) {
                 StartCustomEasy(m_close);
                 m_closing = 2;
             } else {
                 Window::Close();
             }
-        } else if ((int)m_mode == 1) {
-            Window::Close();
         }
+    } else if (m_closing == 2) {
+        Window::Close();
     }
 }
 

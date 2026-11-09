@@ -154,7 +154,7 @@ unsigned char CNGSRemoteUser::HandleContentFileDownloadedFriend(unsigned char su
                 CSaveRestoreInterface* collection = m_profileData[index];
                 if (collection != NULL) {
                     // downloaded file name without its 3 character suffix (the A/B name)
-                    CStrWChar fileName(contentManager->m_fileName.GetWCharPtr());
+                    CStrWChar fileName(contentManager->m_fileName);
                     fileName = fileName.GetSubString(0, fileName.GetLength() - 3);
                     bool sameFile = fileName == collection->getFilename();
                     if (success && sameFile) {

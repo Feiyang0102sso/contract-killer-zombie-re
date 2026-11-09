@@ -306,11 +306,8 @@ public:
         }
         Close();
         Window* layer = ((App*)WindowApp::m_instance)->m_mainLayer;
-        SplashWindow::EType type = SplashWindow::TYPE_2;
-        if (WindowApp::m_instance->m_restartDelay < 2) {
-            type = SplashWindow::TYPE_1;
-        }
-        layer->AddModal(new SplashWindow(type));
+        layer->AddModal(new SplashWindow(WindowApp::m_instance->m_restartDelay < 2
+            ? SplashWindow::TYPE_1 : SplashWindow::TYPE_2));
     }
 
     int m_framesLeft;   // 0xac

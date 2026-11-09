@@ -58,7 +58,7 @@ public:
     unsigned char isValid();
 
     /** Send `message` (deleted here) to the server path `service`; returns the message id (0 on failure). */
-    unsigned int SendMessageObjectToServer(CObjectMapObject* message, const char* service, CNGSServerRequestFunctor* functor);
+    int SendMessageObjectToServer(CObjectMapObject* message, const char* service, CNGSServerRequestFunctor* functor);  // b146: signed in the original (callers test > 0 with cmp #1; bge)
     unsigned int SendMessageToServer(CObjectMap* message, const char* service, CNGSServerRequestFunctor* functor);
     /**
      * Inspect a server reply; returns 0 when it is a success, otherwise the error code

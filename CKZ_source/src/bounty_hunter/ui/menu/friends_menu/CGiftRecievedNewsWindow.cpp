@@ -61,8 +61,7 @@ void CGiftRecievedNewsWindow::CreateUserInterface(const XString& friendName, con
     buttons->SetHeightByContent(0, 0);
     buttons->SetPercentWidth(40, 0, 0);
     SeparateLineRed* separator = new SeparateLineRed;
-    int spacing = SScreenAdaptingConstant(5, 10)();
-    separator->SetOutsetSpacing(spacing, 0, 0, spacing);
+    separator->SetOutsetSpacing(SScreenAdaptingConstant(5, 10)(), 0, 0, 0);
     separator->SetDesiredHeight(SScreenAdaptingConstant(5, 10)());
     separator->SetCellPos(0, 1, 2, 1);
     AddToFront(separator);
@@ -70,14 +69,15 @@ void CGiftRecievedNewsWindow::CreateUserInterface(const XString& friendName, con
 
 void CGiftRecievedNewsWindow::OnCommand(Event& event)
 {
-    if ((unsigned int)event.m_id == 0x2352e724u) {
+    // b147: original places the accept (0x755a6d24) block first, so it is written first.
+    if ((unsigned int)event.m_id == 0x755a6d24u) {
+        if (event.m_param1 != (int)this) { return; }
+        HandleGiftAccepted();
+    } else if ((unsigned int)event.m_id == 0x2352e724u) {
         if (event.m_param1 != (int)this) { return; }
         Close();
         ((App*)WindowApp::m_instance)->m_newsFeedManager->RemoveMessage(m_message);
         m_messageId = -1;
-    } else if ((unsigned int)event.m_id == 0x755a6d24u) {
-        if (event.m_param1 != (int)this) { return; }
-        HandleGiftAccepted();
     } else {
         return;
     }

@@ -746,8 +746,10 @@ SwerveHelper::NodeBoundsCalculator::NodeBoundsCalculator(Bounds3& bounds, const 
 {
     m_reference = reference;
     m_transform = transform;
-    m_bounds.m_min = vec3(FLT_MAX, FLT_MAX, FLT_MAX);
-    m_bounds.m_max = vec3(-m_bounds.m_min.m_x, -m_bounds.m_min.m_y, -m_bounds.m_min.m_z);
+    m_bounds.m_corners[Bounds3::MIN_CORNER] = vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+    m_bounds.m_corners[Bounds3::MAX_CORNER] = vec3(-m_bounds.m_corners[Bounds3::MIN_CORNER].m_x,
+                                                -m_bounds.m_corners[Bounds3::MIN_CORNER].m_y,
+                                                -m_bounds.m_corners[Bounds3::MIN_CORNER].m_z);
 }
 
 bool SwerveHelper::NodeBoundsCalculator::AddMeshBounds(Mesh& mesh)

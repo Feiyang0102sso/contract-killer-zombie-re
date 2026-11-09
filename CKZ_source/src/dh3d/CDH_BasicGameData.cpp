@@ -49,10 +49,10 @@ void CDH_BasicGameData::SetWeapon(int slot, int weaponId)
 CDH_Weapon* CDH_BasicGameData::GetWeapon(int slot)
 {
     CDH_WeaponsManager* weapons = ((App*)WindowApp::m_instance)->m_weaponsManager;
-    if (slot != 0) {
-        return weapons->GetWeaponById(m_weaponIds[1]);
+    if (slot == 0) {
+        return weapons->GetWeaponById(m_weaponIds[0]);
     }
-    return weapons->GetWeaponById(m_weaponIds[0]);
+    return weapons->GetWeaponById(m_weaponIds[1]);
 }
 
 CDH_Weapon* CDH_BasicGameData::GetActiveWeapon()

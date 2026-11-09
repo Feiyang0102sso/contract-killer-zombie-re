@@ -11,7 +11,10 @@
 /** Nationality name and three string lists; the individual list roles are not yet identified. */
 struct CNationalityType {
     XString m_name;                 // 0x00
-    Vector<XString> m_nameGroups[3]; // 0x04, 0x14, 0x24
+    // 0x04, 0x14, 0x24
+    Vector<XString> m_firstNameGroup;
+    Vector<XString> m_secondNameGroup;
+    Vector<XString> m_thirdNameGroup;
 };
 
 class CNationalityTypeManager {

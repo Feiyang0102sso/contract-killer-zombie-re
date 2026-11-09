@@ -80,9 +80,10 @@ void CNGS_Platform::showGenericTextEntryDialog(CStrWChar& message, CDialogFuncto
     NSString* messageText = [[NSString alloc] initWithBytes:message.GetWCharPtr()
                                                      length:message.GetLength() * sizeof(wchar_t)
                                                    encoding:WCHAR_ENCODING];
+    CGSize fieldSize = *(const CGSize*)&textFieldSize;
     CGenericTextEntryViewDialog* dialog = [[CGenericTextEntryViewDialog alloc] initWithMessage:messageText
                                                                                     andFunctor:functor
-                                                                              andTextFieldSize:*(const CGSize*)&textFieldSize
+                                                                              andTextFieldSize:fieldSize
                                                                                 andTextAddress:text];
     [dialog show];
 }

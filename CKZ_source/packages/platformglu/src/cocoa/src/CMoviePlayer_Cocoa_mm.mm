@@ -439,7 +439,8 @@ int CMovieEvent_Cocoa::GetLastErr()
 
 unsigned char CMovieEvent_Cocoa::SetTouchSkippable()
 {
-    [m_controller setTouchSkippable:m_touchSkippable];
+    BOOL touchSkippable = m_touchSkippable;
+    [m_controller setTouchSkippable:touchSkippable];
     return m_controller != nil;
 }
 

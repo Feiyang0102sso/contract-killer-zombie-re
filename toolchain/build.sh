@@ -16,7 +16,8 @@ if [ "$(id -u)" != 0 ]; then
     echo "build.sh: run as root (the build bind-mounts the original source path)" >&2
     exit 1
 fi
-if [ ! -x /work/maloader_src/maloader/ld-mac ] || [ ! -x /work/xcode421/packages/clang/usr/bin/clang ]; then
+AS=/work/xcode421/packages/DeveloperToolsCLI/usr/libexec/as/arm/as
+if [ ! -x /work/maloader_src/maloader/ld-mac ] || [ ! -x /work/xcode421/packages/clang/usr/bin/clang ] || [ ! -x "$AS" ]; then
     echo "build.sh: toolchain missing, run setup first (setup.bat or toolchain/setup_distro.sh)" >&2
     exit 1
 fi

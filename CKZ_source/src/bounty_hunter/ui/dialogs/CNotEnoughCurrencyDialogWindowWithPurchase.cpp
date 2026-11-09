@@ -157,14 +157,14 @@ void CNotEnoughCurrencyDialogWindowWithPurchase::UpdateButtons()
     m_contentContainer->AddToFront(m_buttonsContainer, 0, 2);
     bool credits = true;
     CShopItemButton* button;
-    if (m_best == NULL) {
-        button = CreateLoadingButton(credits);
-    } else {
+    if (m_best != NULL) {
         button = CreateButton(m_best);
         button->m_command = 0x51212dd9;
         button->m_commandParameter1 = (int)button;
         button->m_commandParameter2 = 0;
         button->m_commandParameter3 = 0;
+    } else {
+        button = CreateLoadingButton(credits);
     }
     if (button != NULL) {
         button->SetLayoutType(LAYOUT_SIMPLE);

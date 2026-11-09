@@ -565,15 +565,14 @@ void ScrollingContainer::OnCommand(Event& event)
         if (id == COMMAND_SCROLL_DOWN) {
             direction = 1.0f;
         }
+        // b147: original loads all three constants up front (limits computed before the clamp).
         float velocity = m_velocityY + screenHeight * SCROLL_STEP * direction;
         float minVelocity = screenHeight * -SCROLL_MAX_SPEED;
+        float maxVelocity = screenHeight * SCROLL_MAX_SPEED;
         if (velocity < minVelocity) {
             velocity = minVelocity;
-        } else {
-            float maxVelocity = screenHeight * SCROLL_MAX_SPEED;
-            if (velocity > maxVelocity) {
-                velocity = maxVelocity;
-            }
+        } else if (velocity > maxVelocity) {
+            velocity = maxVelocity;
         }
         m_velocityY = velocity;
         event.Clear();

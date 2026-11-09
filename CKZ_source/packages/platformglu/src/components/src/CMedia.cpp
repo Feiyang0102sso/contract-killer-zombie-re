@@ -99,20 +99,11 @@ unsigned char CMedia::Load(CInputStream& stream, unsigned int type, const wchar_
     unsigned char result = 0;
     if (available != 0) {
         switch (type) {
-        case MimeWav: {
-            WavFormat format;
-            result = ReadWavHeader(stream, format);
-            if (result && format.m_dataSize != 0) {
-                m_data = (unsigned char*)malloc(format.m_dataSize);
-                stream.Read(m_data, format.m_dataSize);
-                if (!stream.m_error) {
-                    result = 1;
-                    m_size = format.m_dataSize;
-                    m_type = MimePcm;
-                } else {
-                    result = 0;
-                    Destroy();
-                }
+        case MimeAdpcm: {
+            result = 0;
+            adpcm::CADPCMInputStream decoder;
+            if (decoder.Open(stream, stream.Available(), m_channels, m_bitsPerSample, m_sampleRate)) {
+                result = CBinary::Load(decoder, MimePcm);
             }
             break;
         }
@@ -134,11 +125,20 @@ unsigned char CMedia::Load(CInputStream& stream, unsigned int type, const wchar_
             free(encoded);
             break;
         }
-        case MimeAdpcm: {
-            result = 0;
-            adpcm::CADPCMInputStream decoder;
-            if (decoder.Open(stream, stream.Available(), m_channels, m_bitsPerSample, m_sampleRate)) {
-                result = CBinary::Load(decoder, MimePcm);
+        case MimeWav: {
+            WavFormat format;
+            result = ReadWavHeader(stream, format);
+            if (result && format.m_dataSize != 0) {
+                m_data = (unsigned char*)malloc(format.m_dataSize);
+                stream.Read(m_data, format.m_dataSize);
+                if (!stream.m_error) {
+                    result = 1;
+                    m_size = format.m_dataSize;
+                    m_type = MimePcm;
+                } else {
+                    result = 0;
+                    Destroy();
+                }
             }
             break;
         }

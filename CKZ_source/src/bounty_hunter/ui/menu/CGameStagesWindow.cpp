@@ -4,9 +4,13 @@
 #include "SScreenAdaptingConstant.h"
 
 CGameStagesWindow::CGameStagesWindow()
-    : m_field140(0), m_field144(0), m_field148(0), m_field14c(0),
-      m_field15c(0), m_field160(0)
 {
+    m_field144 = 0;
+    m_field140 = 0;
+    m_field14c = 0;
+    m_field148 = 0;
+    m_field15c = 0;
+    m_field160 = 0;
     SetArchetypeCharacter(1, 0);
     SetAnimation(52, 1);
     SetInsetSpacing(SScreenAdaptingConstant(5)());
@@ -17,8 +21,8 @@ CGameStagesWindow::CGameStagesWindow()
     m_flag150 = false;
     m_field154 = 0;
     m_field158 = -1;
-    SScreenAdaptingConstant horizontal(5);
     SScreenAdaptingConstant vertical(10);
+    SScreenAdaptingConstant horizontal(5);
     CPlayerGameResourceWindow* provision = new CPlayerGameResourceWindow((CGameResourceWindow::EType)6, true);
     provision->SetCellPos(0, 0, 1, 1);
     int xSpacing = horizontal();

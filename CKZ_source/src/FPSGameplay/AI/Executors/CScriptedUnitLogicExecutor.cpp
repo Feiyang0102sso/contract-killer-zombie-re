@@ -148,8 +148,8 @@ void CScriptedUnitLogicExecutor::MoveToNearestPoint()
     if (unit != NULL) {
         CUnitBody* body = &unit->m_body;
         if (body != NULL) {
-            int first;
             int second;
+            int first;
             body->GetCurrentPosition(&first, &second);
         }
     }
@@ -390,10 +390,12 @@ void CZombieExecutor::Tick(int elapsed)
 void CZombieExecutor::CheckBeaconPresence()
 {
     m_beaconPresent = false;
-    bool canInterrupt = !m_scriptMind->m_owner->IsCivilian();
+    int canInterrupt = !m_scriptMind->m_owner->IsCivilian();
     CUnitTarget* target = m_scriptMind->m_owner->m_target;
-    if (target != NULL && !target->IsInterruptable()) canInterrupt = false;
-    if (canInterrupt) {
+    if (target != NULL) {
+        canInterrupt = target->IsInterruptable() ? canInterrupt : 0;
+    }
+    if (canInterrupt == 1) {
         int grenade = ((App*)WindowApp::m_instance)->m_helper->m_swerveGame->m_pickupGrenade;
         if (grenade >= 0) {
             m_beaconPresent = true;

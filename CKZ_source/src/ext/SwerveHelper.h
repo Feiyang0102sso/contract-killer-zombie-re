@@ -19,33 +19,33 @@ public:
         float x = point.m_x;
         float y = point.m_y;
         float z = point.m_z;
-        if (m_min.m_x < x) {
-            x = m_min.m_x;
+        if (m_corners[MIN_CORNER].m_x < x) {
+            x = m_corners[MIN_CORNER].m_x;
         }
-        if (m_min.m_y < y) {
-            y = m_min.m_y;
+        if (m_corners[MIN_CORNER].m_y < y) {
+            y = m_corners[MIN_CORNER].m_y;
         }
-        if (m_min.m_z < z) {
-            z = m_min.m_z;
+        if (m_corners[MIN_CORNER].m_z < z) {
+            z = m_corners[MIN_CORNER].m_z;
         }
-        m_min = vec3(x, y, z);
+        m_corners[MIN_CORNER] = vec3(x, y, z);
         x = point.m_x;
         y = point.m_y;
         z = point.m_z;
-        if (m_max.m_x > x) {
-            x = m_max.m_x;
+        if (m_corners[MAX_CORNER].m_x > x) {
+            x = m_corners[MAX_CORNER].m_x;
         }
-        if (m_max.m_y > y) {
-            y = m_max.m_y;
+        if (m_corners[MAX_CORNER].m_y > y) {
+            y = m_corners[MAX_CORNER].m_y;
         }
-        if (m_max.m_z > z) {
-            z = m_max.m_z;
+        if (m_corners[MAX_CORNER].m_z > z) {
+            z = m_corners[MAX_CORNER].m_z;
         }
-        m_max = vec3(x, y, z);
+        m_corners[MAX_CORNER] = vec3(x, y, z);
     }
 
-    vec3 m_min;     // 0x00
-    vec3 m_max;     // 0x0c
+    enum Corner { MIN_CORNER, MAX_CORNER };
+    vec3 m_corners[2]; // Minimum at 0x00, maximum at 0x0c.
 };
 
 /** Static helpers for Swerve scene graphs. */

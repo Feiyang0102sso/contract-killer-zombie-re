@@ -90,23 +90,23 @@ int CBH_Player::GetMaxEnergy()
 void CBH_Player::Load()
 {
     TiXmlElement* player = ((App*)WindowApp::m_instance)->m_saveManager->GetRootElement()->FirstChildElement("player");
-    if (player == NULL) {
+    if (player != NULL) {
+        m_newPlayer = false;
+        LoadStats(player);
+        LoadQuests(player);
+        LoadNotifications(player);
+        LoadTjPoints(player);
+        LoadFriendGiftLasDay(player);
+        m_gameStats.Load(player);
+        m_missionsPool.Load(player->FirstChildElement("pool"));
+        ((App*)WindowApp::m_instance)->m_achievementManager->Load(player);
+        ((App*)WindowApp::m_instance)->m_grenadeManager->Load(player);
+        ((App*)WindowApp::m_instance)->m_powerUpManager->Load(player);
+        ((App*)WindowApp::m_instance)->m_offersManager->Load(player);
+    } else {
         SetPlayerStartParams();
         Save(true);
-        return;
     }
-    m_newPlayer = false;
-    LoadStats(player);
-    LoadQuests(player);
-    LoadNotifications(player);
-    LoadTjPoints(player);
-    LoadFriendGiftLasDay(player);
-    m_gameStats.Load(player);
-    m_missionsPool.Load(player->FirstChildElement("pool"));
-    ((App*)WindowApp::m_instance)->m_achievementManager->Load(player);
-    ((App*)WindowApp::m_instance)->m_grenadeManager->Load(player);
-    ((App*)WindowApp::m_instance)->m_powerUpManager->Load(player);
-    ((App*)WindowApp::m_instance)->m_offersManager->Load(player);
 }
 
 void CBH_Player::Update()
@@ -147,16 +147,18 @@ void CBH_Player::Update()
 void CBH_Player::AddEnergy(int amount, bool allowOverflow)
 {
     int current = m_stats.m_values[0].Get();
-    if (allowOverflow) {
-        m_stats.m_values[0].Set(current + amount);
-    } else if (current <= ((App*)WindowApp::m_instance)->m_progressSystem->GetMaxEnergyForLevel(m_id)) {
-        int value = m_stats.m_values[0].Get() + amount;
-        int maximum = ((App*)WindowApp::m_instance)->m_progressSystem->GetMaxEnergyForLevel(m_id);
-        if (value > maximum) {
-            m_stats.m_values[0].Set(((App*)WindowApp::m_instance)->m_progressSystem->GetMaxEnergyForLevel(m_id));
-        } else {
-            m_stats.m_values[0].Set(m_stats.m_values[0].Get() + amount);
+    if (!allowOverflow) {
+        if (current <= ((App*)WindowApp::m_instance)->m_progressSystem->GetMaxEnergyForLevel(m_id)) {
+            int value = m_stats.m_values[0].Get() + amount;
+            int maximum = ((App*)WindowApp::m_instance)->m_progressSystem->GetMaxEnergyForLevel(m_id);
+            if (value > maximum) {
+                m_stats.m_values[0].Set(((App*)WindowApp::m_instance)->m_progressSystem->GetMaxEnergyForLevel(m_id));
+            } else {
+                m_stats.m_values[0].Set(m_stats.m_values[0].Get() + amount);
+            }
         }
+    } else {
+        m_stats.m_values[0].Set(current + amount);
     }
     Save(true);
 }
@@ -274,23 +276,21 @@ void CBH_Player::AddStats(PLAYER_STATS_TYPE type, int amount, bool allowOverflow
     switch ((int)type) {
     case 0: {
         int current = m_stats.m_values[0].Get();
-        if (allowOverflow) {
-            m_stats.m_values[0].Set(current + amount);
-        } else if (current <= ((App*)WindowApp::m_instance)->m_progressSystem->GetMaxEnergyForLevel(m_id)) {
-            int value = m_stats.m_values[0].Get() + amount;
-            int maximum = ((App*)WindowApp::m_instance)->m_progressSystem->GetMaxEnergyForLevel(m_id);
-            if (value > maximum) {
-                m_stats.m_values[0].Set(((App*)WindowApp::m_instance)->m_progressSystem->GetMaxEnergyForLevel(m_id));
-            } else {
-                m_stats.m_values[0].Set(m_stats.m_values[0].Get() + amount);
+        if (!allowOverflow) {
+            if (current <= ((App*)WindowApp::m_instance)->m_progressSystem->GetMaxEnergyForLevel(m_id)) {
+                int value = m_stats.m_values[0].Get() + amount;
+                int maximum = ((App*)WindowApp::m_instance)->m_progressSystem->GetMaxEnergyForLevel(m_id);
+                if (value > maximum) {
+                    m_stats.m_values[0].Set(((App*)WindowApp::m_instance)->m_progressSystem->GetMaxEnergyForLevel(m_id));
+                } else {
+                    m_stats.m_values[0].Set(m_stats.m_values[0].Get() + amount);
+                }
             }
+        } else {
+            m_stats.m_values[0].Set(current + amount);
         }
         break;
     }
-    case 2:
-        m_stats.m_values[2].Set(m_stats.m_values[2].Get() + amount);
-        WindowApp::HandleTunnelCommand(0x83bb38a2, amount, 0, 0);
-        break;
     case 3: {
         m_stats.m_values[3].Set(m_stats.m_values[3].Get() + amount);
         CProgressSystem* progress = ((App*)WindowApp::m_instance)->m_progressSystem;
@@ -307,6 +307,10 @@ void CBH_Player::AddStats(PLAYER_STATS_TYPE type, int amount, bool allowOverflow
         WindowApp::HandleTunnelCommand(0x45e781f9, amount, 0, 0);
         break;
     }
+    case 2:
+        m_stats.m_values[2].Set(m_stats.m_values[2].Get() + amount);
+        WindowApp::HandleTunnelCommand(0x83bb38a2, amount, 0, 0);
+        break;
     case 4:
         m_stats.m_values[4].Set(m_stats.m_values[4].Get() + amount);
         break;
@@ -419,9 +423,12 @@ bool CBH_Player::TryMakeFiveDaysBonus(bool* newDay)
     }
     *newDay = false;
     CNGSSession* session = CNGS::GetInstance()->GetLocalUser()->m_session;
-    bool validTime = session->isValidNetworkTime() == 1;
-    if (validTime) {
+    bool validTime;
+    if (session->isValidNetworkTime() == 1) {
+        validTime = true;
         now = session->getNetworkCurrentTimeSeconds();
+    } else {
+        validTime = false;
     }
     if (now < m_lastFiveDaysBonusTime) {
         return false;
@@ -614,10 +621,7 @@ void CBH_Player::SaveTjPoints(TiXmlElement* element)
         TiXmlElement* child = new TiXmlElement("tapjoy_points");
         XString* key;
         int value = *m_tapjoyPoints.GetAt(index, &key);
-        {
-            XString::AnsiString text(key->m_data);
-            child->SetStringAttribute("devId", text);
-        }
+        child->SetStringAttribute("devId", XString::AnsiString(key->m_data));
         child->SetAttribute("points", value);
         parent->InsertEndChild(*child);
         delete child;
@@ -650,10 +654,7 @@ void CBH_Player::SaveFriendGiftLasDay(TiXmlElement* element)
         TiXmlElement* child = new TiXmlElement("friendGift");
         XString* key;
         int value = *m_friendGiftDays.GetAt(index, &key);
-        {
-            XString::AnsiString text(key->m_data);
-            child->SetStringAttribute("socialUserGUID", text);
-        }
+        child->SetStringAttribute("socialUserGUID", XString::AnsiString(key->m_data));
         child->SetAttribute("lastDay", value);
         parent->InsertEndChild(*child);
         delete child;

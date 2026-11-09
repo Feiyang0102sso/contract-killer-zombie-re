@@ -4,6 +4,8 @@
 #include "BaseDialog.h"
 #include "SScreenAdaptingConstant.h"
 #include "CFontMgr.h"
+// The two dynamic initializations at original 507ac0; the names have no separate original symbol, so neutral purpose names are used.
+#include "AdBannerSizes.h"
 #include "CGameApp.h"
 #include "ICNotification.h"
 #include "ICStdUtil.h"
@@ -25,9 +27,6 @@ static const char FLURRY_API_KEY[] = "EEKPX1UWQSTW45ZKLVJL";
 static const char PLAYHAVEN_APP_KEY[] = "daddc3f644b641fba5748013ec66480e";
 static const char PLAYHAVEN_SECRET[] = "0176ff0d779844a9bc0d18b5ec5fc43f";
 static const char TAPJOY_APP_ID[] = "e363778a-687a-416c-9601-2f9af2323db0";
-// The two dynamic initializations at original 507ac0; the names have no separate original symbol, so neutral purpose names are used.
-static SScreenAdaptingConstant HELP_WIDTH(320, 640, 768, 512);
-static SScreenAdaptingConstant HELP_PERCENT(50, 100, 90, 80);
 
 CHelpScreen::CHelpScreen() : CBaseScreen(true, true, false),
     m_aboutText(NULL), m_unlock(NULL), m_pendingReveal(true)

@@ -31,9 +31,9 @@ public:
     /** The application's push notification object, created on first use. */
     static inline CPushNotification_Cocoa* GetInstance()
     {
-        CPushNotification_Cocoa* found = NULL;
-        CApplet::m_pApp->m_singletons->Find(SingletonId, (void**)&found);
-        CPushNotification_Cocoa* instance = found;
+        void* found = NULL;
+        CApplet::m_pApp->m_singletons->Find(SingletonId, &found);
+        CPushNotification_Cocoa* instance = static_cast<CPushNotification_Cocoa*>(found);
         if (instance == NULL) {
             instance = new CPushNotification_Cocoa();
         }

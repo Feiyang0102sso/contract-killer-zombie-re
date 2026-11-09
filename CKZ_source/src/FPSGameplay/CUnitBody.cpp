@@ -66,8 +66,8 @@ const char* BOXES_LIGHT_TEXTURE_NODE_NAME = "gradient";
 void ObstaclesContainer::AddStatic(const vec3& first, const vec3& second, const vec3& direction, float radius)
 {
     Static obstacle;
-    obstacle.m_first = first;
-    obstacle.m_second = second;
+    obstacle.m_endpoints[0] = first;
+    obstacle.m_endpoints[1] = second;
     obstacle.m_direction = direction;
     obstacle.m_radius = radius;
     m_static.addElement(obstacle);
@@ -169,8 +169,8 @@ CUnitBody::CUnitBody(const SSpawnablePerson& person, const IGameAIMap* map)
     m_hitRayOrigin = vec3();
     m_hitRayDirection = vec3();
     m_hitRayFraction = 0.0f;
-    m_bounds.m_min = m_visualType->m_bounds.m_min * m_scale;
-    m_bounds.m_max = m_visualType->m_bounds.m_max * m_scale;
+    m_bounds.m_min = m_visualType->m_bounds.m_corners[Bounds3::MIN_CORNER] * m_scale;
+    m_bounds.m_max = m_visualType->m_bounds.m_corners[Bounds3::MAX_CORNER] * m_scale;
     m_height = m_bounds.m_max.m_z - m_bounds.m_min.m_z;
     if (m_personType->m_isBoss) m_refreshBounds = true;
     Game()->GetCollision()->AddKinematicBody(this);
@@ -357,17 +357,16 @@ void CUnitBody::Tick(int elapsed)
     UpdateAnimation(elapsed);
     m_map->SyncLocation(m_location, m_position);
     m_position = m_location.m_position;
-    if (m_refreshBounds) {
-        if (m_boundsTimer < 250) {
-            m_boundsTimer += elapsed;
-        } else {
-            m_boundsTimer = 0;
-            Bounds3 bounds;
-            Transform transform(CSwerve::GetInstance()->m_swerve);
-            SwerveHelper::CalculateBounds(bounds, m_model, transform);
-            m_bounds.m_min = bounds.m_min * m_scale;
-            m_bounds.m_max = bounds.m_max * m_scale;
-        }
+    if (!m_refreshBounds) return;
+    if (m_boundsTimer >= 250) {
+        m_boundsTimer = 0;
+        Bounds3 bounds;
+        Transform transform(CSwerve::GetInstance()->m_swerve);
+        SwerveHelper::CalculateBounds(bounds, m_model, transform);
+        m_bounds.m_min = bounds.m_corners[Bounds3::MIN_CORNER] * m_scale;
+        m_bounds.m_max = bounds.m_corners[Bounds3::MAX_CORNER] * m_scale;
+    } else {
+        m_boundsTimer += elapsed;
     }
 }
 
@@ -535,9 +534,8 @@ void CUnitBody::CheckVisibility(const FrustumCulling& frustum)
     if (m_spawning && m_visualType->m_noFrustumCullingOnSpawn) {
         m_visible = true;
     } else {
-        m_cullSphere->m_offset.x = m_position.m_x;
-        m_cullSphere->m_offset.y = m_position.m_y;
-        m_cullSphere->m_offset.z = m_position.m_z;
+        swvVector3D offset = {m_position.m_x, m_position.m_y, m_position.m_z};
+        m_cullSphere->m_offset = offset;
         m_visible = frustum.CheckVisibility(*m_cullSphere);
     }
 }

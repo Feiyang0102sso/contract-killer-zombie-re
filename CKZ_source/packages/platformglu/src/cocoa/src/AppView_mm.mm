@@ -20,8 +20,8 @@ static const unsigned int SystemEvent_TouchCancelled = 0x5707b968;
 static void ScaleCoordinates(int& x, int& y, float viewScale)
 {
     const CVector2dx& scale = CApplet::m_pCore->GetDisplayToWindowScale();
-    x = CMathFixed::Mul(scale.x, x);
-    y = CMathFixed::Mul(scale.y, y);
+    x = CMathFixed::Mul(x, scale.x);
+    y = CMathFixed::Mul(y, scale.y);
     x = (int)((float)x * viewScale);
     y = (int)((float)y * viewScale);
 }

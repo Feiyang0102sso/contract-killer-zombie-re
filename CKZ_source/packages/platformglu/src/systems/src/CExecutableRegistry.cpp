@@ -27,8 +27,11 @@ void CExecutableRegistry::OnExecute()
         }
         if (executable->Run() == components::CExecutable::RunResult_Deleted) {
             // the executable deleted itself: drop its element
-            itr++;
+            CSystemElement* next = element->m_next;
             Remove(*element);
+            if (next != NULL) {
+                itr.m_current = next;
+            }
             if (element != NULL) {
                 delete element;
             }

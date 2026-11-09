@@ -22,7 +22,7 @@
 #define PUT_IF_ROOM(character) if (remaining-- > 0) { *str++ = (character); }
 
 // ---- constant data ----
-static const char NULL_STR[] = "<NULL>";
+static const char NULL_STR[8] = "<NULL>";
 static const wchar_t NULL_STR_w[] = { 'N', 'U', 'L', 'L' };     // not terminated (as shipped)
 static const wchar_t wdigits[] = L"0123456789abcdefghijklmnopqrstuvwxyz";
 static const wchar_t wdigitsL[] = L"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -117,8 +117,10 @@ repeat:
         precision = -1;
         if (*format == '.') {
             ++format;
-            if (is_digit(*format)) {
-                precision = skip_atoi(&format);
+            if (*format >= '0') {
+                if (*format <= '9') {
+                    precision = skip_atoi(&format);
+                }
             } else if (*format == '*') {
                 ++format;
                 // it's the next argument
@@ -387,8 +389,10 @@ repeat:
         precision = -1;
         if (*format == L'.') {
             ++format;
-            if (is_digit(*format)) {
-                precision = skip_atoi(&format);
+            if (*format >= L'0') {
+                if (*format <= L'9') {
+                    precision = skip_atoi(&format);
+                }
             } else if (*format == L'*') {
                 ++format;
                 // it's the next argument

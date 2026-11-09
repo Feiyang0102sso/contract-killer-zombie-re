@@ -48,17 +48,18 @@ void CGPSMapScreen::OnPointerEvent(Event& event)
     switch (event.m_type) {
     case Event::POINTER_DRAGGED:
         m_pointer.TouchMove(event.m_param1, event.m_param2);
-        break;
+        event.Clear();
+        return;
     case Event::POINTER_PRESSED:
         m_pointer.TouchDown(event.m_param1, event.m_param2);
-        break;
+        event.Clear();
+        return;
     case Event::POINTER_RELEASED:
         m_pointer.TouchUp();
         return;
     default:
         return;
     }
-    event.Clear();
 }
 
 void CGPSMapScreen::Update()

@@ -34,12 +34,12 @@ void CAttackExecutor::RealAttack()
 void CAttackExecutor::OnAnimationComplete(WeakIntrusivePtr<AnimationInstance> animation, bool completed)
 {
     if (animation == m_animation) {
-        if (m_attackState == 4) {
-            m_attackState = 1;
+        if (m_attackState == 1) {
+            m_attackState = 2;
         } else if (m_attackState == 2) {
             m_attackState = 4;
-        } else if (m_attackState == 1) {
-            m_attackState = 2;
+        } else if (m_attackState == 4) {
+            m_attackState = 1;
         }
         ProcessState();
     }
@@ -53,14 +53,23 @@ void CAttackExecutor::OnTurningComplete()
 void CAttackExecutor::ProcessState()
 {
     int state = m_attackState;
-    while (state == 2) {
-        state = 4;
-    }
-    m_attackState = state;
-    if (state == 4) {
-        RunAttackAnimation();
-    } else if (state == 1) {
-        Finish(m_mind, (EExecutorResult)0);
+    while (true) {
+        switch (state) {
+        case 1:
+            m_attackState = state;
+            Finish(m_mind, (EExecutorResult)0);
+            return;
+        case 2:
+            state = 4;
+            continue;
+        case 4:
+            m_attackState = state;
+            RunAttackAnimation();
+            return;
+        default:
+            m_attackState = state;
+            return;
+        }
     }
 }
 
@@ -106,11 +115,15 @@ void CAttackExecutor::RunAttackAnimation()
     body->ShowBulletMuzzleFlash();
     CUnitTarget* target = m_mind->m_owner->m_target;
     if (target != NULL) {
-        vec3 source(owner->m_body.m_position.m_x + 0.0f, owner->m_body.m_position.m_y + 0.0f,
-                    owner->m_body.m_position.m_z + 1.0f);
-        vec3 destination(target->m_position.m_x + 0.0f, target->m_position.m_y + 0.0f,
-                         target->m_position.m_z + 1.0f);
-        vec3 direction = destination - source;
+        const vec3& ownerPosition = owner->GetPosition();
+        float sourceX = ownerPosition.m_x + 0.0f;
+        float sourceY = ownerPosition.m_y + 0.0f;
+        float targetX = target->m_position.m_x + 0.0f;
+        float targetY = target->m_position.m_y + 0.0f;
+        float sourceZ = ownerPosition.m_z + 1.0f;
+        float targetZ = target->m_position.m_z + 1.0f;
+        vec3 source(sourceX, sourceY, sourceZ);
+        vec3 direction(targetX - sourceX, targetY - sourceY, targetZ - sourceZ);
         direction = direction * MathLib::InvSqrt(direction.LengthSqr());
         source = source + direction * 1.5f;
         vec3 velocity = direction * 75.0f;

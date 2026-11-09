@@ -222,7 +222,7 @@ void CDH_Weapon::update(unsigned int deltaTime)
             m_spinSpeed = speed;
         }
         if (m_spinSpeed > 0.1f && !GetApp()->m_soundManager->IsPlaying(m_spinSoundCount < 2 ? SOUND_MINIGUN_SPIN_START : SOUND_MINIGUN_SPIN)) {
-            m_spinSoundCount++;
+            m_spinSoundCount = (int)((unsigned int)m_spinSoundCount + 1);
             GetApp()->m_soundManager->Play(m_spinSoundCount < 2 ? SOUND_MINIGUN_SPIN_START : SOUND_MINIGUN_SPIN, false, m_spinSoundCount > 1);
         } else if (m_spinSpeed < 0.05f) {
             if (GetApp()->m_soundManager->IsPlaying(m_spinSoundCount < 2 ? SOUND_MINIGUN_SPIN_START : SOUND_MINIGUN_SPIN)) {
@@ -632,7 +632,8 @@ void CDH_Weapon::loadWeaponModel()
     }
 
     m_throwTime = m_baseThrowTime = m_animation->getControllerBaseDuration(CONTROLLER_THROW);
-    if (m_rateOfFire < m_animation->getControllerBaseDuration(CONTROLLER_SHOOT)) {
+    // b146: the original calls first, then loads m_rateOfFire (base > rate)
+    if (m_animation->getControllerBaseDuration(CONTROLLER_SHOOT) > m_rateOfFire) {
         m_animation->setControllerDuration(CONTROLLER_SHOOT, m_rateOfFire);
     }
     int reloadDuration = m_animation->getControllerBaseDuration(CONTROLLER_RELOAD);
@@ -1050,8 +1051,10 @@ int CDH_Weapon::MakeShot()
         }
         int ammo = m_ammo;
         m_ammo = ammo - 1;
-        if (m_weaponType == WEAPON_TYPE_MINIGUN || m_weaponType == WEAPON_TYPE_HEAVY) {
+        if (m_weaponType == WEAPON_TYPE_HEAVY) {
             m_ammo = ammo - 2;
+        } else if (m_weaponType == WEAPON_TYPE_MINIGUN) {
+            --m_ammo;
         }
         PlayShootAnimation();
         GetApp()->m_soundManager->Play((CDH_SoundManager::eSound)m_shootSound, false, false);

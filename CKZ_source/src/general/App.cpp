@@ -22,6 +22,8 @@
 #include "ICGraphics.h"
 #include "ICGraphics2d.h"
 #include "ICRasterizerState.h"
+#include "AdBannerSizes.h"
+#include "CNGSOfferManager.h"
 #include "CNGS.h"
 #include "CNGSURLMgr.h"
 #include "CNGSFactory.h"
@@ -247,7 +249,8 @@ int App::GetCurrentDay()
 
 bool App::TimePause()
 {
-    int count = m_timePauseCount + 1;
+    // Preserve the original 32-bit wrap before the signed comparison.
+    int count = static_cast<int>(static_cast<unsigned int>(m_timePauseCount) + 1U);
     m_timePauseCount = count;
     if (count < 1) {
         return false;
@@ -466,18 +469,21 @@ void App::Init()
     MediaCacheRes("IDM_WINDOW_FLYOUT", true);
     MediaCacheRes("IDM_ITEM_SELECTED", true);
     MediaCacheRes("IDM_MENU_CLICK", true);
+    int screenWidth = WindowApp::m_instance->m_screenWidth;
     int screenSize = WindowApp::m_instance->m_screenHeight;
-    if (screenSize < WindowApp::m_instance->m_screenWidth) {
-        screenSize = WindowApp::m_instance->m_screenWidth;
+    if (screenWidth > screenSize) {
+        screenSize = screenWidth;
     }
     m_field370 = screenSize / 7;
     m_field374 = Window::ImageHeight(m_images[1].GetSurface());
     // gamerun.dat exists while the game runs: finding it means the last run did not end normally
-    CStrWChar path;
-    CFileUtil::GetApplicationDataPathForFile(path, gameRunningFilename);
-    ICFileMgr* files = ICFileMgr::GetInstance();
-    m_gameWasRunning = files->Exists(path.m_string) != 0;
-    files->Delete(path.m_string);
+    {
+        CStrWChar path;
+        CFileUtil::GetApplicationDataPathForFile(path, gameRunningFilename);
+        ICFileMgr* files = ICFileMgr::GetInstance();
+        m_gameWasRunning = files->Exists(path.m_string) != 0;
+        files->Delete(path.m_string);
+    }
     CFlurry::StartSession(FLURRY_API_KEY);
     CFlurry::SetSessionReportsOnPauseEnabled(true);
     CFlurry::SetSessionReportsOnCloseEnabled(false);
@@ -495,56 +501,60 @@ extern "C" void* malloc(size_t size);
 extern "C" void free(void* pointer);
 int App::GetDeviceType()
 {
-    if (m_deviceType != DEVICE_UNKNOWN) {
-        return m_deviceType;
-    }
-    CStrChar machine;
-    size_t size;
-    sysctlbyname("hw.machine", NULL, &size, NULL, 0);
-    char* buffer = (char*)malloc(size);
-    sysctlbyname("hw.machine", buffer, &size, NULL, 0);
-    machine = buffer;
-    free(buffer);
-    const char* model = machine.m_string;
-    if (model == NULL) {
-        m_deviceType = DEVICE_OTHER;
-    } else if (strcmp(model, "iPhone1,1") == 0) {
-        m_deviceType = DEVICE_IPHONE;
-    } else if (strcmp(model, "iPhone1,2") == 0) {
-        m_deviceType = DEVICE_IPHONE_3G;
-    } else if (strcmp(model, "iPhone2,1") == 0) {
-        m_deviceType = DEVICE_IPHONE_3GS;
-    } else if (strcmp(model, "iPhone3,1") == 0) {
-        m_deviceType = DEVICE_IPHONE_4;
-    } else if (strcmp(model, "iPhone3,3") == 0) {
-        m_deviceType = DEVICE_IPHONE_4_CDMA;
-    } else if (strcmp(model, "iPod1,1") == 0) {
-        m_deviceType = DEVICE_IPOD_1;
-    } else if (strcmp(model, "iPod2,1") == 0) {
-        m_deviceType = DEVICE_IPOD_2;
-    } else if (strcmp(model, "iPod3,1") == 0) {
-        m_deviceType = DEVICE_IPOD_3;
-    } else if (strcmp(model, "iPod4,1") == 0) {
-        m_deviceType = DEVICE_IPOD_4;
-    } else if (strcmp(model, "iPad1,1") == 0) {
-        m_deviceType = DEVICE_IPAD;
-    } else if (strcmp(model, "iPad2,1") == 0 || strcmp(model, "iPad2,2") == 0 || strcmp(model, "iPad2,3") == 0) {
-        m_deviceType = DEVICE_IPAD_2;
-    } else if (strcmp(model, "i386") == 0) {
-        // simulator: guess from the screen size
-        int screenSize = WindowApp::m_instance->m_screenHeight;
-        if (screenSize < WindowApp::m_instance->m_screenWidth) {
-            screenSize = WindowApp::m_instance->m_screenWidth;
-        }
-        if (screenSize <= 480) {
+    if (m_deviceType == DEVICE_UNKNOWN) {
+        CStrChar machine;
+        size_t size;
+        sysctlbyname("hw.machine", NULL, &size, NULL, 0);
+        char* buffer = (char*)malloc(size);
+        sysctlbyname("hw.machine", buffer, &size, NULL, 0);
+        machine = buffer;
+        free(buffer);
+        const char* model = machine.m_string;
+        if (model == NULL) {
+            m_deviceType = DEVICE_OTHER;
+        } else if (strcmp(model, "iPhone1,1") == 0) {
+            m_deviceType = DEVICE_IPHONE;
+        } else if (strcmp(model, "iPhone1,2") == 0) {
             m_deviceType = DEVICE_IPHONE_3G;
-        } else if (screenSize <= 960) {
+        } else if (strcmp(model, "iPhone2,1") == 0) {
+            m_deviceType = DEVICE_IPHONE_3GS;
+        } else if (strcmp(model, "iPhone3,1") == 0) {
             m_deviceType = DEVICE_IPHONE_4;
-        } else if (screenSize <= 1024) {
+        } else if (strcmp(model, "iPhone3,3") == 0) {
+            m_deviceType = DEVICE_IPHONE_4_CDMA;
+        } else if (strcmp(model, "iPod1,1") == 0) {
+            m_deviceType = DEVICE_IPOD_1;
+        } else if (strcmp(model, "iPod2,1") == 0) {
+            m_deviceType = DEVICE_IPOD_2;
+        } else if (strcmp(model, "iPod3,1") == 0) {
+            m_deviceType = DEVICE_IPOD_3;
+        } else if (strcmp(model, "iPod4,1") == 0) {
+            m_deviceType = DEVICE_IPOD_4;
+        } else if (strcmp(model, "iPad1,1") == 0) {
             m_deviceType = DEVICE_IPAD;
+        } else if (strcmp(model, "iPad2,1") == 0) {
+            m_deviceType = DEVICE_IPAD_2;
+        } else if (strcmp(model, "iPad2,2") == 0) {
+            m_deviceType = DEVICE_IPAD_2;
+        } else if (strcmp(model, "iPad2,3") == 0) {
+            m_deviceType = DEVICE_IPAD_2;
+        } else if (strcmp(model, "i386") == 0) {
+            // simulator: guess from the screen size
+            int screenWidth = WindowApp::m_instance->m_screenWidth;
+            int screenSize = WindowApp::m_instance->m_screenHeight;
+            if (screenWidth > screenSize) {
+                screenSize = screenWidth;
+            }
+            if (screenSize <= 480) {
+                m_deviceType = DEVICE_IPHONE_3G;
+            } else if (screenSize <= 960) {
+                m_deviceType = DEVICE_IPHONE_4;
+            } else if (screenSize <= 1024) {
+                m_deviceType = DEVICE_IPAD;
+            }
+        } else {
+            m_deviceType = DEVICE_OTHER;
         }
-    } else {
-        m_deviceType = DEVICE_OTHER;
     }
     return m_deviceType;
 }
@@ -913,9 +923,9 @@ void App::Update()
             m_pushStatisticsDelay = PUSH_STATISTICS_DELAY;
             CStrWChar token;
     CGameApp::GetInstance()->m_pushTokenSource->GetIdentity(token);
-            if (token.m_length != 0) {
+            if (token.GetLength() != 0) {
                 m_pushStatisticsSent = true;
-                XString text(token.m_string);
+                XString text(token.GetWCharPtr());
                 XString::AnsiString ansiText(text.c_str());
                 CGameAnalytics::SendPushStatistics(ansiText);
                 CGameAnalytics::SendDeferredPushToken();
@@ -1209,11 +1219,10 @@ void App::OnEnterForeground()
     CNGS::GetInstance()->Resume();
     CNetMessageQueue_gServe::GetInstance()->onStart();
     if (m_initialized) {
-        App* app = (App*)WindowApp::m_instance;
-        app->m_soundManager->Resume(BACKGROUND_SOUNDS);
-        app->m_iapCurrencyManager->UpdateIAPInfo(false);
+        ((App*)WindowApp::m_instance)->m_soundManager->Resume(BACKGROUND_SOUNDS);
+        ((App*)WindowApp::m_instance)->m_iapCurrencyManager->UpdateIAPInfo(false);
         CBH_Player::GetInstance()->m_gameStats.NotifyAppForeground();
-        app->m_updateManager->checkUpdates();
+        ((App*)WindowApp::m_instance)->m_updateManager->checkUpdates();
     }
 }
 

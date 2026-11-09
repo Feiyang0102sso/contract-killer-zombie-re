@@ -39,7 +39,7 @@ void CShopScrollWindow::Add(Window* window, bool featured, bool selected)
     Window* page = new Window(false);
     page->SetLayoutType(Window::LAYOUT_NONE);
     int width = window->m_width;
-    page->SetRect(m_targetX + m_pages.size() * width, 0, width, window->m_height, true);
+    page->SetRect(m_pages.size() * width + m_targetX, 0, width, window->m_height, true);
     page->AddToFront(window);
     m_pages.addElement(page);
     if (featured == true) {
@@ -84,8 +84,9 @@ void CShopScrollWindow::CalculateContentWidthAndHeight()
     m_contentWidth = 0;
     m_contentHeight = 0;
     for (int index = 0; index < m_pages.size(); ++index) {
-        m_contentWidth += m_pages[index]->m_width;
-        m_contentHeight += m_pages[index]->m_height;
+        Window* page = m_pages[index];
+        m_contentWidth += page->m_width;
+        m_contentHeight += page->m_height;
     }
 }
 
@@ -172,19 +173,21 @@ void CShopScrollWindow::Update()
 
 void CShopScrollWindow::MoveContents(int x, int y)
 {
-    if (m_pages.size() < 1) {
-        return;
-    }
-    int firstWidth = m_pages[0]->m_width;
-    if (m_pages[0]->m_x > m_targetX + firstWidth && x > 0) {
-        return;
-    }
-    if (m_pages[m_pages.size() - 1]->m_x < m_targetX - firstWidth && x < 0) {
-        return;
+    int firstWidth = 0;
+    if (m_pages.size() >= 1) {
+        firstWidth = m_pages[0]->m_width;
+        if (m_pages[0]->m_x > m_targetX + firstWidth && x > 0) {
+            return;
+        }
+        if (m_pages[m_pages.size() - 1]->m_x < m_targetX - firstWidth && x < 0) {
+            return;
+        }
     }
     for (int index = 0; index < m_pages.size(); ++index) {
         Window* page = m_pages[index];
-        page->SetCorner(page->m_x + x, page->m_y);
+        int pageX = page->m_x;
+        int pageY = page->m_y;
+        page->SetCorner(pageX + x, pageY);
     }
     if (m_pages.size() >= 1) {
         int index = (m_width / 2 - m_pages[0]->m_x) / firstWidth;

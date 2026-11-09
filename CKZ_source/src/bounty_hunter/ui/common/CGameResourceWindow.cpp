@@ -17,16 +17,17 @@ CGameResourceWindow::CGameResourceWindow(EType type, bool largeSpacing)
     SGImageWindow* icon = new SGImageWindow;
     icon->SetArchetypeCharacter(1, 0);
     icon->SetAlign(0x14);
-    int animation = 0;
+    int animation;
     switch (m_type) {
     case 0: animation = 6; break;
-    case 1: animation = 5; break;
     case 2: animation = 7; break;
     case 3: case 8: animation = 36; break;
     case 4: animation = 39; break;
     case 5: animation = 72; break;
     case 6: animation = 40; break;
+    case 1: animation = 5; break;
     case 7: animation = 41; break;
+    default: animation = 0; break;
     }
     icon->SetAnimation(animation, 1);
     m_icon = icon;
@@ -38,12 +39,13 @@ CGameResourceWindow::CGameResourceWindow(EType type, bool largeSpacing)
     // Original 14899a allocates first, then queries the font manager, and only reads m_type at 1489d6; the type must not be cached across the external call.
     TextWindow* valueText = (TextWindow*)malloc(sizeof(TextWindow));
     CFontMgr* fontManager = CFontMgr::GetInstance();
-    int font = 0;
+    int font;
     switch (m_type) {
-    case 0: case 4: case 5: case 6: case 7: font = 29; break;
     case 1: case 8: font = 28; break;
     case 2: font = 27; break;
     case 3: font = 26; break;
+    case 0: case 4: case 5: case 6: case 7: font = 29; break;
+    default: font = 0; break;
     }
     new (valueText) TextWindow(fontManager->GetFont(font));
     m_valueText = valueText;
@@ -135,10 +137,6 @@ void CPlayerGameResourceWindow::Update()
             m_maximum = maximum;
         }
         break;
-    case 3:
-        m_value = player->GetStats((PLAYER_STATS_TYPE)3);
-        m_maximum = 0;
-        break;
     case 4:
         {
             int value = player->GetStats((PLAYER_STATS_TYPE)8);
@@ -154,6 +152,10 @@ void CPlayerGameResourceWindow::Update()
             m_value = value;
             m_maximum = maximum;
         }
+        break;
+    case 3:
+        m_value = player->GetStats((PLAYER_STATS_TYPE)3);
+        m_maximum = 0;
         break;
     default:
         changed = false;

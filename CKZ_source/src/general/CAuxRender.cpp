@@ -81,7 +81,7 @@ void CAuxRender::DrawLine(const vec3& start, const vec3& end, float width, int c
     // the line mesh points along +z: rotate it onto the direction
     vec3 up(0.0f, 0.0f, 1.0f);
     float cosine = normal.Dot(up);
-    if (cosine > 1.0f || cosine < -1.0f) {
+    if (!(cosine <= 1.0f && cosine >= -1.0f)) {
         DrawLine(start, start + up * FALLBACK_LINE_LENGTH, width, color);
         return;
     }
@@ -94,12 +94,20 @@ void CAuxRender::DrawLine(const vec3& start, const vec3& end, float width, int c
     if (m_tasks.m_size >= m_tasks.m_capacity) {
         return;
     }
+    // Read the start coordinates before any writes to the task buffer.
+    float startX = start.m_x;
+    float startY = start.m_y;
+    float startZ = start.m_z;
     STask& task = m_tasks.m_data[m_tasks.m_size];
     task.m_type = TASK_LINE;
-    task.m_position = start;
+    task.m_position.m_x = startX;
+    task.m_position.m_y = startY;
+    task.m_position.m_z = startZ;
     task.m_size = vec3(width, width, length);
-    task.m_axis = axis;
-    task.m_angle = angle;
+    task.m_axis.m_x = axis.m_x;
+    task.m_axis.m_y = axis.m_y;
     task.m_color = color;
+    task.m_axis.m_z = axis.m_z;
+    task.m_angle = angle;
     m_tasks.m_size++;
 }

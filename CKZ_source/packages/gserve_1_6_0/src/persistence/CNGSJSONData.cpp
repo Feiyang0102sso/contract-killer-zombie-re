@@ -341,28 +341,26 @@ double CNGSJSONData::convertDateToSecondsFromNow(const CStrWChar& date)
 
 unsigned char CNGSJSONData::FindStringAttribute(const CStrWChar& path, const CStrWChar& name, CStrWChar* value)
 {
-    if (m_root == NULL) {
-        return 0;
-    }
-    CObjectMap document(m_root);
-    if (m_root->getType() == CObjectMapValue::TYPE_OBJECT) {
-        CObjectMapValue* entry = document.getDataAt(path, CStrWChar(L"/"));
-        if (entry != NULL) {
-            if (entry->getType() == CObjectMapValue::TYPE_OBJECT) {
-                CObjectMapValue* attribute = ((CObjectMapObject*)entry)->getEntry(name);
-                if (attribute == NULL || attribute->getType() != CObjectMapValue::TYPE_STRING) {
-                    return 0;
+    if (m_root != NULL) {
+        CObjectMap document(m_root);
+        if (m_root->getType() == CObjectMapValue::TYPE_OBJECT) {
+            CObjectMapValue* entry = document.getDataAt(path, CStrWChar(L"/"));
+            if (entry != NULL) {
+                if (entry->getType() == CObjectMapValue::TYPE_OBJECT) {
+                    CObjectMapValue* attribute = ((CObjectMapObject*)entry)->getEntry(name);
+                    if (attribute != NULL && attribute->getType() == CObjectMapValue::TYPE_STRING) {
+                        *value = CStrWChar(((CObjectMapString*)attribute)->m_value);
+                        return 1;
+                    }
+                } else if (entry->getType() == CObjectMapValue::TYPE_STRING) {
+                    *value = CStrWChar(((CObjectMapString*)entry)->m_value);
+                    return 1;
+                } else if (entry->getType() == CObjectMapValue::TYPE_ARRAY) {
+                    // The original reads an array like a string as well (+0x0c is not a string there).
+                    *value = CStrWChar(((CObjectMapString*)entry)->m_value);
+                    return 1;
                 }
-                *value = CStrWChar(((CObjectMapString*)attribute)->m_value);
-            } else if (entry->getType() == CObjectMapValue::TYPE_STRING) {
-                *value = CStrWChar(((CObjectMapString*)entry)->m_value);
-            } else if (entry->getType() == CObjectMapValue::TYPE_ARRAY) {
-                // The original reads an array like a string as well (+0x0c is not a string there).
-                *value = CStrWChar(((CObjectMapString*)entry)->m_value);
-            } else {
-                return 0;
             }
-            return 1;
         }
     }
     return 0;

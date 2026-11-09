@@ -283,10 +283,11 @@ CObjectMapValue* CNGSJSONParser::decodeValue(const CStrWChar& json)
 
     // name of the next object member, set by a string token in an object
     CStrWChar key;
-    if (tokenList[0].m_string[0] == L'[') {
-        root = new CObjectMapArray();
-    } else if (tokenList[0].m_string[0] == L'{') {
+    // b147: written '{' first; the compiled chain then tests '[' first like the original
+    if (tokenList[0].m_string[0] == L'{') {
         root = new CObjectMapObject();
+    } else if (tokenList[0].m_string[0] == L'[') {
+        root = new CObjectMapArray();
     } else {
         return root;
     }
@@ -320,7 +321,7 @@ CObjectMapValue* CNGSJSONParser::decodeValue(const CStrWChar& json)
                     array->m_parent = current;
                     child = array;
                 }
-                ((CObjectMapArray*)current)->m_values.Add(child);
+                ((CObjectMapArray*)current)->addEntry(child);
             } else {
                 if (type != CObjectMapValue::TYPE_OBJECT) {
                     if (root != NULL) {
@@ -365,7 +366,7 @@ CObjectMapValue* CNGSJSONParser::decodeValue(const CStrWChar& json)
         } else if (first == L'"') {
             if (current->getType() == CObjectMapValue::TYPE_ARRAY) {
                 CStrWChar text = stripQuotes(token);
-                ((CObjectMapArray*)current)->m_values.Add(new CObjectMapString(decodeString(text)));
+                ((CObjectMapArray*)current)->addEntry(new CObjectMapString(decodeString(text)));
             } else if (key.m_length != 0) {
                 CStrWChar text = stripQuotes(token);
                 ((CObjectMapObject*)current)->addEntry(stripQuotes(key), new CObjectMapString(decodeString(text)));
@@ -377,7 +378,7 @@ CObjectMapValue* CNGSJSONParser::decodeValue(const CStrWChar& json)
             }
         } else if (first == L'-' || isOneOf(first, numbers, 10)) {
             if (current->getType() == CObjectMapValue::TYPE_ARRAY) {
-                ((CObjectMapArray*)current)->m_values.Add(new CObjectMapInt(decodeInteger(token)));
+                ((CObjectMapArray*)current)->addEntry(new CObjectMapInt(decodeInteger(token)));
             } else if (key.m_length != 0) {
                 ((CObjectMapObject*)current)->addEntry(stripQuotes(key), new CObjectMapInt(decodeInteger(token)));
                 key = "";
@@ -391,7 +392,7 @@ CObjectMapValue* CNGSJSONParser::decodeValue(const CStrWChar& json)
         } else if (token == L"true" || token == L"false") {
             unsigned char boolValue = (token == L"true");
             if (current->getType() == CObjectMapValue::TYPE_ARRAY) {
-                ((CObjectMapArray*)current)->m_values.Add(new CObjectMapBool(boolValue));
+                ((CObjectMapArray*)current)->addEntry(new CObjectMapBool(boolValue));
             } else if (key.m_length != 0) {
                 ((CObjectMapObject*)current)->addEntry(stripQuotes(key), new CObjectMapBool(boolValue));
                 key = "";
@@ -404,7 +405,7 @@ CObjectMapValue* CNGSJSONParser::decodeValue(const CStrWChar& json)
             }
         } else if (token == L"null") {
             if (current->getType() == CObjectMapValue::TYPE_ARRAY) {
-                ((CObjectMapArray*)current)->m_values.Add(new CObjectMapNull());
+                ((CObjectMapArray*)current)->addEntry(new CObjectMapNull());
             } else if (key.m_length != 0) {
                 ((CObjectMapObject*)current)->addEntry(stripQuotes(key), new CObjectMapNull());
                 key = "";

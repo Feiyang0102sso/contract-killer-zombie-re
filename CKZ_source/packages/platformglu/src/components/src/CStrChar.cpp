@@ -50,13 +50,15 @@ CStrChar operator+(const CStrChar& left, const char* right)
 
 CStrChar operator+(const char* left, const CStrChar& right)
 {
-    if (left != NULL && right.m_string != NULL) {
-        CStrChar joined(left);
-        joined.Concatenate(right.m_string);
-        return joined.m_string;
-    }
-    const char* only = left;
-    if (left == NULL) {
+    const char* only = NULL;
+    if (left != NULL) {
+        if (right.m_string != NULL) {
+            CStrChar joined(left);
+            joined.Concatenate(right.m_string);
+            return joined.m_string;
+        }
+        only = left;
+    } else if (right.m_string != NULL) {
         only = right.m_string;
     }
     return only;

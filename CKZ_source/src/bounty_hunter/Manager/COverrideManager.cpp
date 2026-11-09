@@ -25,6 +25,6 @@ void COverrideManager::ReloadConfig()
             m_document.Parse(text);
             m_configCrc = crc;
         }
-        delete[] text;
+        ::operator delete[](text);
     }
 }

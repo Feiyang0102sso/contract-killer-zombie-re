@@ -88,7 +88,11 @@ void CShopWeaponButton::Update()
 {
     if (((App*)WindowApp::m_instance)->m_tutorialManager->IsPlayerInTutorial() == 1) {
         CTutorialManager* tutorial = ((App*)WindowApp::m_instance)->m_tutorialManager;
-        m_flagEc = tutorial->IsWeaponButtonBlink(m_weapon->getId()) == 1;
+        if (tutorial->IsWeaponButtonBlink(m_weapon->getId()) == 1) {
+            m_flagEc = true;
+        } else {
+            m_flagEc = false;
+        }
     }
     CShopRectItemButton::Update();
 }

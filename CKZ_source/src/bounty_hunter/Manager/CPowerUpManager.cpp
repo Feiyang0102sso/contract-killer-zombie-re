@@ -34,17 +34,19 @@ void CPowerUpManager::Load(TiXmlElement* parent)
     if (powerups == NULL) {
         return;
     }
+    int count;
     m_activeId = CXmlHelper::GetAttributeValue(powerups, "active_pid").ToInt();
-    for (TiXmlElement* element = powerups->FirstChildElement("p"); element != NULL;
-         element = element->NextSiblingElement("p")) {
-        CPowerUp* item;
+    TiXmlElement* element = powerups->FirstChildElement("p");
+    while (element != NULL) {
+        int id = CXmlHelper::GetAttributeValue(element, "id").ToInt();
+        CPowerUp* item = static_cast<CPowerUp*>(getItemById(id));
         // Original @0x1300b0 retries the same node forever when its id is unknown.
-        do {
-            int id = CXmlHelper::GetAttributeValue(element, "id").ToInt();
-            item = static_cast<CPowerUp*>(getItemById(id));
-        } while (item == NULL);
-        int count = CXmlHelper::GetAttributeValue(element, "c").ToInt();
-        item->m_count.Set(count);
+        if (item != NULL) {
+            const int nodeCount = CXmlHelper::GetAttributeValue(element, "c").ToInt();
+            count = nodeCount;
+            item->m_count.Set(count);
+            element = element->NextSiblingElement("p");
+        }
     }
 }
 

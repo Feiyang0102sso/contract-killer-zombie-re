@@ -67,7 +67,7 @@ unsigned char CGraphics::RemoveFromResourceRegistry(ICGraphicsResource& resource
     if (resource.m_resourceType == ICRenderSurface::ResourceType) {
         // texture units must not keep a surface that goes away
         for (int unit = 0; unit < TextureUnitCount; unit++) {
-            if (m_textureUnits[unit].m_surface == element->m_object) {
+            if (element->m_object == m_textureUnits[unit].m_surface) {
                 m_textureUnits[unit].m_surface = NULL;
                 m_textureUnits[unit].m_level = 0;
                 m_textureUnits[unit].m_dirty = 1;
@@ -202,10 +202,13 @@ void CGraphics::InitializeCore()
 
     m_debugMessagingBridge = new DebugMessagingBridge;
 
-    m_eventListener = new systems::CEventListener;
-    m_eventListener->m_object = this;
-    m_eventListener->m_handle = core::CHandle::FromName("Graphics");
-    m_eventListener->m_callback = m_eventHandler;
+    systems::CEventListener* listener = new systems::CEventListener;
+    m_eventListener = listener;
+    unsigned int handle = core::CHandle::FromName("Graphics");
+    EventHandler callback = m_eventHandler;
+    listener->m_object = this;
+    listener->m_handle = handle;
+    listener->m_callback = callback;
     m_eventListener->Register(Graphics_Event_747ab255, Graphics_EventPriority_Early);
     m_eventListener->Register(Graphics_Event_c0d486fe, Graphics_EventPriority_Early);
     m_eventListener->Register(Graphics_Event_16625f9a, Graphics_EventPriority_Early);

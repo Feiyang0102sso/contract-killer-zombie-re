@@ -456,7 +456,8 @@ static const int kAdRetryTime = 15000;
     UIWindow* keyWindow = [[UIApplication sharedApplication] keyWindow];
     if (x == -1 && y == -1) {
         // no position given: place the banner by the alignment flags
-        CGRect bounds = [[[keyWindow subviews] objectAtIndex:0] bounds];
+        UIView* rootView = [[keyWindow subviews] objectAtIndex:0];    // b147: named (cmp+bne nil check of the original)
+        CGRect bounds = [rootView bounds];
         int verticalAlignment = alignment & 3;
         int horizontalAlignment = alignment & 0xc;
         switch (verticalAlignment) {

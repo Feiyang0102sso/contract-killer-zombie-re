@@ -110,7 +110,7 @@ public:
         if (current->m_helicopterScene) {
             current->GetCurrentCameraPos();
             // Copied by value: the original loads the forward vector before calling Sqrt.
-            vec3 forward = current->m_cameraForward;
+            vec3 forward = current->m_cameraVectors[CSwerveGame::CAMERA_FORWARD];
             float dx = m_local.m_max.m_x-m_local.m_min.m_x;
             float dy = m_local.m_max.m_y-m_local.m_min.m_y;
             position = position + forward * MathLib::Sqrt((dx*dx+dy*dy)+0.0f);
@@ -170,20 +170,20 @@ CSwerveGame::CSwerveGame()
       m_collisionTransform(CSwerve::GetInstance()->m_swerve), m_state(0),
       m_startCountdown(2.0f), m_environmentTime(0), m_world(NULL),
       m_blurAmount(0.0f), m_field51c(0.0f), m_transition(0),
-      m_transitionDuration(0), m_transitionTime(0.0f), m_blurDuration(0), m_blurTime(0.0f),
-      m_fovDuration(0), m_fovTime(0.0f), m_fovBlur(false), m_resetFovBlur(false),
+      m_fovBlur(false), m_resetFovBlur(false),
       m_headShotEffect(false), m_animationUpdate(false), m_field58e(false),
       m_field590(0), m_previousActiveCount(0), m_unitUpdateElapsed(0), m_field5cc(false),
       m_cursor(NULL), m_ownedCursor(NULL), m_field5d8(0), m_pendingFire(false),
       m_sceneReady(false), m_field640(false), m_interruptCountdown(-1), m_pendingInterrupt(false),
-      m_field69c(false), m_field6c0(true),
+      m_field69c(false),
+      // b146: the original zeroes the input state here, in member order (one memset between 0x69c and 0x6c0)
+      m_inputX(0.0f), m_inputY(0.0f), m_targetAngleH(0.0f), m_targetAngleV(0.0f), m_velocityH(0.0f),
+      m_velocityV(0.0f), m_responseTime(0.0f), m_zeroInputFrames(0), m_field6c0(true),
       m_referenceTransform(CSwerve::GetInstance()->m_swerve), m_lightTransform(CSwerve::GetInstance()->m_swerve),
       m_cameraDirty(true), m_weaponId(-1), m_tapToShoot(false), m_field7a9(false)
 {
-    m_viewport.m_x = m_viewport.m_y = m_viewport.m_width = m_viewport.m_height = 0;
-    m_inputX = m_inputY = m_targetAngleH = m_targetAngleV = m_velocityH = m_velocityV = m_responseTime = 0.0f;
-    m_zeroInputFrames = 0;
-    for (int index = 0; index < 4; ++index) (&m_cameraRight)[index] = vec3(0,0,0);
+    // b147: no second viewport clear in the body; SViewport() already zeroes it in member order (0x35c).
+    for (int index = 0; index < 4; ++index) m_cameraVectors[index] = vec3(0,0,0);
     for (int index = 0; index < 6; ++index) { m_cameraHistory[index] = vec3(0,0,0); m_cameraTimes[index] = 0.0f; }
     m_cameraSampleCount = 0;
     for (int index = 0; index < 10; ++index) {
@@ -587,7 +587,9 @@ void CSwerveGame::FinishGameWithResult(EBountyResult result,bool unused)
         ShowFailResultDialog();
         CMission* failed = GameApp()->m_missionManager->GetMissionByName(GameApp()->m_huntingInfo->m_assignedData.m_missionName);
         CBH_Player* player = CBH_Player::GetInstance();
-        CGameAnalytics::logMissionFailed(failed->m_name,player->m_id,m_zombieMission->m_cycleIndex);
+        int cycleIndex = m_zombieMission->m_cycleIndex;
+        int playerId = player->m_id;
+        CGameAnalytics::logMissionFailed(failed->m_name,playerId,cycleIndex);
     }
     if (CBH_Player::GetInstance()->m_id-m_initialLevel > 0) *(bool*)((char*)GameApp()->m_huntingInfo+0x6c) = true;
 }
@@ -947,20 +949,20 @@ void CSwerveGame::UpdateCameraVectors()
     }
     ++m_cameraSampleCount;
     if ((unsigned int)m_cameraSampleCount > 6) m_cameraSampleCount = 6;
-    m_cameraHistory[0] = m_cameraPosition;
+    m_cameraHistory[0] = m_cameraVectors[CAMERA_POSITION];
     m_cameraTimes[0] = GameApp()->m_timeSeconds;
     m_cameraDirty = false;
-    m_cameraRight = vec3(1,0,0); m_cameraUp = vec3(0,1,0);
-    m_cameraForward = vec3(0,0,1); m_cameraPosition = vec3(0,0,0);
+    m_cameraVectors[CAMERA_RIGHT] = vec3(1,0,0); m_cameraVectors[CAMERA_UP] = vec3(0,1,0);
+    m_cameraVectors[CAMERA_FORWARD] = vec3(0,0,1); m_cameraVectors[CAMERA_POSITION] = vec3(0,0,0);
     if (m_referenceNode.m_interface == NULL) m_referenceNode = Camera(m_cameraNode.find(SwerveHelper::Id(XString::AnsiString(m_cameraName.m_data))));
     if (m_referenceNode.m_interface == NULL) return;
     m_referenceNode.getTransformTo(m_cameraNode, m_referenceTransform);
     float matrix[16];
     m_referenceTransform.get(matrix);
-    m_cameraRight = vec3(matrix[0],matrix[4],matrix[8]);
-    m_cameraUp = vec3(matrix[1],matrix[5],matrix[9]);
-    m_cameraForward = vec3(matrix[2],matrix[6],matrix[10]);
-    m_cameraPosition = vec3(matrix[3],matrix[7],matrix[11]);
+    m_cameraVectors[CAMERA_RIGHT] = vec3(matrix[0],matrix[4],matrix[8]);
+    m_cameraVectors[CAMERA_UP] = vec3(matrix[1],matrix[5],matrix[9]);
+    m_cameraVectors[CAMERA_FORWARD] = vec3(matrix[2],matrix[6],matrix[10]);
+    m_cameraVectors[CAMERA_POSITION] = vec3(matrix[3],matrix[7],matrix[11]);
     m_referenceNode.getProjection(m_cameraTransform);
     SwerveHelper::SetMatrix(m_inverseProjection, m_cameraTransform);
     m_inverseProjection.Invert();
@@ -995,7 +997,7 @@ vec3 CSwerveGame::GetLaserSightRayCastResult(bool* hit)
             if (hit != NULL) *hit = true;
             vec3 position = GetCurrentCameraPos();
             if (m_cameraDirty) UpdateCameraVectors();
-            return position - m_cameraForward * distance;
+            return position - m_cameraVectors[CAMERA_FORWARD] * distance;
         }
     }
     vec3 position = GetCurrentCameraPos();
@@ -1061,9 +1063,16 @@ void CSwerveGame::CreateScene(bool unused)
     float smokeAge = 1.5f;
     float ricochetAge = 2.5f;
     bool smokeCollision = true;
-    if (device <= 8 && ((1u<<device)&0x19cu) != 0) {
+    // b147: old devices (iPhone/3G/3GS, iPod 1/2) as a switch; lowered to the original bit test 0x19c.
+    switch (device) {
+    case App::DEVICE_IPHONE:
+    case App::DEVICE_IPHONE_3G:
+    case App::DEVICE_IPHONE_3GS:
+    case App::DEVICE_IPOD_1:
+    case App::DEVICE_IPOD_2:
         tracerCount = 16; debrisCount = 32; particleCount = 42; smokeCount = 32;
         particleAge = 1.5f; smokeAge = 1.0f; ricochetAge = 1.5f; smokeCollision = false;
+        break;
     }
     m_tracers = new Fragments(tracerCount,0.22f,vec3(0,0,0),NULL,(Fragments::EParticleType)2,vec3(100,100,25),"BIN_M3G_EFFECT_TRACER_SYSTEM");
     m_debris = new Fragments(debrisCount,0.11f,vec3(0,0,-9.8f),NULL,(Fragments::EParticleType)1,vec3(100,100,25),"BIN_M3G_EFFECT_TRACER_SYSTEM");
@@ -1187,7 +1196,7 @@ void CSwerveGame::LoadLocation()
     FixWorldPosition();
     DefineCollisionGeometry();
     LoadSceneLighting();
-    if (location->m_lightingNode.ByteSize() >= 4) {
+    if (location->m_lightingNode.Length() > 0) {  // b146: original tests Length() (unsigned divide, blo)
         XString::AnsiString lightName(location->m_lightingNode.m_data);
         m_dynamicLight = swerve::Light<CSwerveAssertingErrorHandler>(m_cameraNode.find(SwerveHelper::Id(lightName)));
         if (GameApp()->m_helper->m_gamePlayManager.GetGameData()->GetWeapon(0) != NULL)
@@ -1300,22 +1309,23 @@ void CSwerveGame::Blast(const vec3& position,const vec3& normal,float radius,int
     }
     CBH_Player::GetInstance()->m_gameStats.NotifyShotBegin(weapon,grenade,1);
     if (weapon != NULL) m_unitsController->Blast(position,radius,weapon,NULL,source);
-    else m_unitsController->Blast(position,radius,damage,power,NULL,grenade,source);
+    else if (grenade != NULL) m_unitsController->Blast(position,radius,damage,power,NULL,grenade,source);
+    else m_unitsController->Blast(position,radius,damage,power,NULL,NULL,source);
     CBH_Player::GetInstance()->m_gameStats.NotifyShotEnd();
     vec3 camera = m_camera->GetViewPosition();
     vec3 delta = camera-position;
     if (!m_helicopterScene) {
         XString missionName = GameApp()->m_huntingInfo->m_assignedData.m_missionName;
         XString location = GameApp()->m_missionManager->GetMissionByName(missionName)->m_locationName;
-        bool stadium = location == L"Stadium_Cam2";
+        bool outsideStadium = !(location == L"Stadium_Cam2");
+        float farAmplitude = outsideStadium ? 0.25f : 0.03125f;
+        float nearAmplitude = outsideStadium ? 0.0625f : 0.015625f;
         float scale = (delta.LengthSqr()-1.0f)/1599.0f;
         if (scale < 0.0f) scale = 0.0f;
-        else if (scale > 1.0f) scale = 1.0f;
-        float strength = (1.0f-scale)+(1.0f-scale)+scale*4.0f;
-        float nearAmplitude = 0.0625f;
-        float farAmplitude = 0.25f;
-        if (stadium) { nearAmplitude = 0.015625f; farAmplitude = 0.03125f; }
-        m_camera->SetShake(0.8f,strength,farAmplitude*(1.0f-scale)+nearAmplitude*scale);
+        else scale = com::glu::platform::math::CMath::Min(1.0f,scale);
+        float inverseScale = 1.0f-scale;
+        float strength = inverseScale+inverseScale+scale*4.0f;
+        m_camera->SetShake(0.8f,strength,farAmplitude*inverseScale+nearAmplitude*scale);
     }
 }
 
@@ -1380,21 +1390,21 @@ void CSwerveGame::UpdateGameFinishing(int elapsedMs)
 void CSwerveGame::UpdateFovBlur(int elapsedMs)
 {
     if (!m_fovBlur) return;
-    float blurDuration = (float)m_blurDuration;
-    if (!(m_blurTime >= blurDuration)) m_blurTime += (float)elapsedMs;
-    float fovDuration = (float)m_fovDuration;
-    if (!(m_fovTime >= fovDuration)) m_fovTime += (float)elapsedMs;
-    if (m_blurTime >= blurDuration && m_fovTime >= fovDuration) {
+    float blurDuration = (float)m_blurRun.m_duration;
+    if (!(m_blurRun.m_time >= blurDuration)) m_blurRun.m_time += (float)elapsedMs;
+    float fovDuration = (float)m_fovRun.m_duration;
+    if (!(m_fovRun.m_time >= fovDuration)) m_fovRun.m_time += (float)elapsedMs;
+    if (m_blurRun.m_time >= blurDuration && m_fovRun.m_time >= fovDuration) {
         m_blurAmount = 0.0f;
         m_camera->SetFOV(m_savedFov);
         m_fovBlur = false;
         return;
     }
     if (m_blurFrames < 3) { m_blurAmount = 0.01f; ++m_blurFrames; }
-    else m_blurAmount = EasyLib::Run((EasyLib::EDirType)1,m_blurMethod,m_blurTime,m_blurBegin,m_blurEnd-m_blurBegin,blurDuration,1.70158f);
+    else m_blurAmount = EasyLib::Run((EasyLib::EDirType)1,m_blurRun.m_method,m_blurRun.m_time,m_blurRun.m_begin,m_blurRun.m_end-m_blurRun.m_begin,blurDuration,1.70158f);
     DGCamera* camera = m_camera;
     float base = m_savedFov;
-    float scale = EasyLib::Run((EasyLib::EDirType)1,m_fovMethod,m_fovTime,m_fovBegin,m_fovEnd-m_fovBegin,(float)m_fovDuration,1.70158f);
+    float scale = EasyLib::Run((EasyLib::EDirType)1,m_fovRun.m_method,m_fovRun.m_time,m_fovRun.m_begin,m_fovRun.m_end-m_fovRun.m_begin,(float)m_fovRun.m_duration,1.70158f);
     camera->SetFOV(base*scale);
     m_fovBlur = true;
 }
@@ -1440,9 +1450,13 @@ void CSwerveGame::HuntingUpdate(int elapsedMs)
         if (power->m_reloadSoundSpeed > 0.0f) simulationMs = (int)((float)elapsedMs*power->m_reloadSoundSpeed);
     }
     if (m_locationAnimation != NULL) {
-        float speed = 1.0f;
-        if (GameApp()->m_powerUpManager->IsPowerUpRunning() == 1) speed = GameApp()->m_powerUpManager->GetActivePowerUp()->m_reloadSoundSpeed;
-        m_locationAnimation->setControllerSpeed(0,speed);
+        // b147: original passes the raw speed word from each branch (two calls, tail-merged).
+        if (GameApp()->m_powerUpManager->IsPowerUpRunning() == 1) {
+            float speed = GameApp()->m_powerUpManager->GetActivePowerUp()->m_reloadSoundSpeed;
+            m_locationAnimation->setControllerSpeed(0, speed);
+        } else {
+            m_locationAnimation->setControllerSpeed(0, 1.0f);
+        }
         m_locationAnimation->animate();
     }
     m_scriptController->Update(elapsedMs);
@@ -1486,18 +1500,25 @@ void CSwerveGame::HuntingUpdate(int elapsedMs)
         int y = m_cursor->GetAimY();
         Shot(x,y);
     }
-    bool switchScope = false;
     if (GameApp()->m_helper->m_gamePlayManager.GetGameData()->GetActiveWeapon()->IsReloading() == 1 && !m_field464) {
-        m_field464 = true; switchScope = true;
+        m_field464 = true;
+        if (m_hud->GetFlagBc()) {
+            m_hud->switchScope();
+            m_field466 = true;
+        }
     } else {
         CDH_Weapon* weapon = GameApp()->m_helper->m_gamePlayManager.GetGameData()->GetActiveWeapon();
-        if (weapon->m_action == 8 && !m_field465) { m_field465 = true; switchScope = true; }
-        else if (GameApp()->m_helper->m_gamePlayManager.GetGameData()->GetActiveWeapon()->IsReloading() == 0 && m_field464) {
+        if (weapon->m_action == 8 && !m_field465) {
+            m_field465 = true;
+            if (m_hud->GetFlagBc()) {
+                m_hud->switchScope();
+                m_field466 = true;
+            }
+        } else if (GameApp()->m_helper->m_gamePlayManager.GetGameData()->GetActiveWeapon()->IsReloading() == 0 && m_field464) {
             if (!m_hud->GetFlagBc() && m_field466) m_field466 = false;
             m_field464 = false;
         }
     }
-    if (switchScope && m_hud->GetFlagBc()) { m_hud->switchScope(); m_field466 = true; }
     if (GameApp()->m_helper->m_gamePlayManager.GetGameData()->GetActiveWeapon()->m_action != 8 && m_field465) {
         if (!m_hud->GetFlagBc() && m_field466) m_field466 = false;
         m_field465 = false;
@@ -1524,17 +1545,17 @@ IGameAIMap* CSwerveGame::GetGameAIMap()
 const vec3& CSwerveGame::GetCurrentCameraPos()
 {
     if (m_cameraDirty) UpdateCameraVectors();
-    return m_cameraPosition;
+    return m_cameraVectors[CAMERA_POSITION];
 }
 const vec3& CSwerveGame::GetCurrentCameraRight()
 {
     if (m_cameraDirty) UpdateCameraVectors();
-    return m_cameraRight;
+    return m_cameraVectors[CAMERA_RIGHT];
 }
 const vec3& CSwerveGame::GetCurrentCameraUp()
 {
     if (m_cameraDirty) UpdateCameraVectors();
-    return m_cameraUp;
+    return m_cameraVectors[CAMERA_UP];
 }
 bool CSwerveGame::DefineShotProbability(const CDH_Weapon* weapon, const vec3& position)
 {
@@ -1678,16 +1699,16 @@ void CSwerveGame::OnShooterAttacked()
 void CSwerveGame::RunFovBlur(float multiplier, int durationMs, bool reset)
 {
     m_field51c = 0.0f;
-    m_blurTime = 0.0f;
-    m_blurBegin = 0.98f;
-    m_blurEnd = 0.8f;
-    m_blurMethod = (EasyLib::EMethod)22;
-    m_blurDuration = durationMs;
-    m_fovTime = 0.0f;
-    m_fovBegin = multiplier;
-    m_fovEnd = 1.0f;
-    m_fovMethod = (EasyLib::EMethod)27;
-    m_fovDuration = (int)((float)durationMs * 0.7f);
+    m_blurRun.m_time = 0.0f;
+    m_blurRun.m_begin = 0.98f;
+    m_blurRun.m_end = 0.8f;
+    m_blurRun.m_method = (EasyLib::EMethod)22;
+    m_blurRun.m_duration = durationMs;
+    m_fovRun.m_time = 0.0f;
+    m_fovRun.m_begin = multiplier;
+    m_fovRun.m_end = 1.0f;
+    m_fovRun.m_method = (EasyLib::EMethod)27;
+    m_fovRun.m_duration = (int)((float)durationMs * 0.7f);
     if (!m_fovBlur) m_savedFov = m_camera->GetFOV();
     m_blurFrames = 0;
     m_resetFovBlur = reset;
@@ -1699,16 +1720,18 @@ void CSwerveGame::OnPause()
 }
 
 CHelicopter::CHelicopter(World world, XString resource)
-    : m_world(world), m_bodyAnimation(NULL), m_positionAnimation(NULL)
+    : m_world(world)
 {
+    m_bodyAnimation = NULL;
+    m_positionAnimation = NULL;
     m_original = Group(m_world.find(SwerveHelper::Id("helicopterTransform")));
     if (m_original.m_interface != NULL) {
         Group box(m_original.find(SwerveHelper::Id("Box01Transform")));
         if (box.m_interface != NULL) box.setRenderingEnable(false);
-        Group loaded;
         // Original 0x100c58 tests stored byte size directly, before conversion.
-        if (resource.ByteSize() != 0) loaded = Group(App::LoadObject3D(XString::AnsiString(resource.m_data)));
-        else loaded = Group(App::LoadObject3D("BIN_M3G_OBJECT_HELICOPTER"));
+        Group loaded(App::LoadObject3D(resource.ByteSize() != 0
+            ? (const char*)XString::AnsiString(resource.m_data)
+            : "BIN_M3G_OBJECT_HELICOPTER"));
         Group original = loaded;
         m_model = SwerveHelper::FullObjectDuplicate(original, 0);
         m_world.addChild(m_model);
@@ -2020,10 +2043,10 @@ void CSwerveGame::Paint3DBottom(Graphics3D& graphics)
     } else if (m_transition == 1) m_transition = 2;
     else if (m_transition == 2) {
         ICGraphics::GetInstance()->Sync();
-        m_blendColor[3] = EasyLib::Run((EasyLib::EDirType)1,m_transitionMethod,m_transitionTime,m_transitionBegin,m_transitionEnd-m_transitionBegin,(float)m_transitionDuration,1.70158f);
+        m_blendColor[3] = EasyLib::Run((EasyLib::EDirType)1,m_transitionRun.m_method,m_transitionRun.m_time,m_transitionRun.m_begin,m_transitionRun.m_end-m_transitionRun.m_begin,(float)m_transitionRun.m_duration,1.70158f);
         Graphics2D::GetInstance()->Draw(*m_blurSurfaces[0],NULL,(const com::glu::platform::components::Color_RGBA*)m_blendColor,Graphics2D::Flip_None);
-        if (!(m_transitionTime >= (float)m_transitionDuration)) m_transitionTime += (float)GameApp()->m_updateFrameTime;
-        if (m_transitionTime >= (float)m_transitionDuration) m_transition = 0;
+        if (!(m_transitionRun.m_time >= (float)m_transitionRun.m_duration)) m_transitionRun.m_time += (float)GameApp()->m_updateFrameTime;
+        if (m_transitionRun.m_time >= (float)m_transitionRun.m_duration) m_transition = 0;
     }
 }
 void CSwerveGame::Paint3DTop(Graphics3D& graphics)
@@ -2034,7 +2057,12 @@ void CSwerveGame::Paint3DTop(Graphics3D& graphics)
             float values[16];
             transform.get(values);
             for (int row = 0; row < 4; ++row) {
-                for (int column = 0; column < 4; ++column) matrix.ToFloatPtr()[row*4+column] = values[row*4+column];
+                const float* sourceRow = &values[row*4];
+                vec4& destinationRow = matrix[row];
+                destinationRow.m_x = sourceRow[0];
+                destinationRow.m_y = sourceRow[1];
+                destinationRow.m_z = sourceRow[2];
+                destinationRow.m_w = sourceRow[3];
             }
         }
     };
@@ -2116,13 +2144,14 @@ void CSwerveGame::Paint3DTop(Graphics3D& graphics)
 }
 void CSwerveGame::Shot(int x,int y)
 {
+    // b147: the original stores the aim copies at entry (sp+0x13c/0x138), before the first early return.
+    int aimX = x;
+    int aimY = y;
     if (m_finishing) return;
     if (m_field69c) { GameApp()->m_soundManager->Play((CDH_SoundManager::eSound)90,false,false); return; }
     CDH_Weapon* weapon = GameApp()->m_helper->m_gamePlayManager.GetGameData()->GetActiveWeapon();
     if (weapon == NULL || weapon->IsReadyForUse() != 1 || m_field5cc) return;
     if (weapon->MakeShot() != 1) return;
-    int aimX = x;
-    int aimY = y;
     float rayX;
     float rayY;
     float unused;
@@ -2143,6 +2172,8 @@ void CSwerveGame::Shot(int x,int y)
     if (m_cameraDirty) UpdateCameraVectors();
     CBH_Player* player = CBH_Player::GetInstance();
     player->m_gameStats.NotifyShotBegin(GameApp()->m_helper->m_gamePlayManager.GetGameData()->GetActiveWeapon(),NULL,shotCount);
+    // b147: the original tests the shotgun types once before the loop (or of two compares at 0xfc194).
+    bool singleBarrel = weaponType == 1 || weaponType == 7;
     for (unsigned int shot = 0; shot < shotCount; ++shot) {
         int hit = m_unitsController->Shot(rayX,rayY,weapon,m_collisionLine);
         vec3 point = m_collisionPoint;
@@ -2150,14 +2181,14 @@ void CSwerveGame::Shot(int x,int y)
         if (m_handGrenades != NULL) m_handGrenades->Pick((float)aimX,(float)aimY,m_cameraNode.getActiveCamera());
         if (shot < tracerCount && m_tracers != NULL) {
             int barrel = (int)shot;
-            if (weaponType == 1 || weaponType == 7) barrel = 0;
+            if (singleBarrel) barrel = 0;
             vec3 emitter = tracerWeapon->GetTracerEmitterPos(barrel,m_referenceNode,m_cameraNode);
             vec3 cameraVelocity = GetCurrentCameraVel();
             emitter = emitter+cameraVelocity*GameApp()->m_frameTimeSeconds;
             float spread = 0.0f;
             float pointSquared = (point.m_x*point.m_x+point.m_y*point.m_y)+point.m_z*point.m_z;
             if (MathLib::InvSqrt(pointSquared)*pointSquared == 0.0f) {
-                point = emitter-m_cameraForward*100.0f;
+                point = emitter-m_cameraVectors[CAMERA_FORWARD]*100.0f;
                 float fov = m_camera->GetFOV();
                 if (fov > 0.0f) spread = m_zoom/((float)m_width/fov);
                 else spread = 0.0f;

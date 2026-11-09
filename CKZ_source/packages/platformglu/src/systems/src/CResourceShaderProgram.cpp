@@ -54,25 +54,22 @@ unsigned int CResourceShaderProgram::CreateInternal(unsigned int handle, const c
     unsigned char known = 1;
     graphics::ICGraphicsAbstract::Abstraction abstraction = graphics::ICGraphicsAbstract::Abstraction_2;
     switch (mimeType) {
-    case 0xb52802e0:
-        abstraction = graphics::ICGraphicsAbstract::Abstraction_2;
+    case 0xf1854bbc: {
+        // generic program: use the abstraction of the running renderer
+        int rendererAbstraction = graphics::ICGraphics::GetInstance()->GetAbstraction();
+        if (rendererAbstraction != 2) {
+            if (rendererAbstraction == 1) {
+                abstraction = graphics::ICGraphicsAbstract::Abstraction_1;
+            } else {
+                known = 0;
+            }
+        }
         break;
+    }
     case 0xb52802fb:
         abstraction = graphics::ICGraphicsAbstract::Abstraction_1;
         break;
-    case 0xf1854bbc:
-        // generic program: use the abstraction of the running renderer
-        switch ((int)graphics::ICGraphics::GetInstance()->GetAbstraction()) {
-        case 2:
-            abstraction = graphics::ICGraphicsAbstract::Abstraction_2;
-            break;
-        case 1:
-            abstraction = graphics::ICGraphicsAbstract::Abstraction_1;
-            break;
-        default:
-            known = 0;
-            break;
-        }
+    case 0xb52802e0:
         break;
     default:
         known = 0;

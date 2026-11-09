@@ -590,7 +590,7 @@ public:
 
     /** Same runtime object (compared through the runtime's object identity). */  // added by b047x
     int operator==(const Object3D& other) const;  // added by b047x; changed by b055x: int (CDH_Animation tests the result with cbz, a bool gives cmp #1)
-    bool operator!=(const Object3D& other) const;  // added by b048
+    int operator!=(const Object3D& other) const;  // added by b048
 
 protected:  // added by b051x
     IObject3DInterface* object3D() const  // added by b051x
@@ -1846,7 +1846,7 @@ int Object3D<ErrorHandler>::operator==(const Object3D& other) const  // added by
 }
 
 template <class ErrorHandler>  // added by b048
-bool Object3D<ErrorHandler>::operator!=(const Object3D& other) const  // added by b048
+int Object3D<ErrorHandler>::operator!=(const Object3D& other) const  // added by b048
 {  // added by b048
     // The former b048 thin implementation was return !(*this == other); original 101810..1018e8 queries the two identities independently.
     // b067h restored the complete original method; must not rely on the out-of-line/inline choice of == to replace this method.

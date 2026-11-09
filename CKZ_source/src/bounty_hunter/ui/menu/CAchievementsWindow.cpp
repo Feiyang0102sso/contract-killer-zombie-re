@@ -63,14 +63,15 @@ CAchievementsWindow::CAchievementsWindow() : CBaseScreen(true, true, true)
 
 void CAchievementsWindow::OnCommand(Event& event)
 {
-    if (event.m_id == (int)0x9720b34a) {
+    // b147: original places the back (0x97204784) block first, so it is written first.
+    if (event.m_id == (int)0x97204784) {
+        ReverseEasy(0x200);
+        event.Clear();
+    } else if (event.m_id == (int)0x9720b34a) {
         CSettingsWindow* settings = new CSettingsWindow(false, false);
         settings->SetLayoutType(LAYOUT_SIMPLE);
         settings->SetAlign(36);
         ((App*)WindowApp::m_instance)->m_mainLayer->AddModal(settings);
-        event.Clear();
-    } else if (event.m_id == (int)0x97204784) {
-        ReverseEasy(0x200);
         event.Clear();
     }
     CBaseScreen::OnCommand(event);

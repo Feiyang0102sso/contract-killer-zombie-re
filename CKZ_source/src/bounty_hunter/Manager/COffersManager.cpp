@@ -161,7 +161,7 @@ bool COffersManager::ShouldBeShown()
     CItem* item = ((App*)WindowApp::m_instance)->m_iapCurrencyManager->getItemById(m_goldPackId);
     if (item != NULL && item->isAvailable() == true &&
         CBH_Player::GetInstance()->GetLevel() >= m_startingLevel &&
-        m_showDelay < (unsigned int)(CStdUtil_Cocoa::GetTimeSeconds() - m_lastOfferTime) &&
+        (unsigned int)(CStdUtil_Cocoa::GetTimeSeconds() - m_lastOfferTime) > m_showDelay &&
         m_showCount < m_maxShows) {
         ++m_showCount;
         m_lastOfferTime = CStdUtil_Cocoa::GetTimeSeconds();

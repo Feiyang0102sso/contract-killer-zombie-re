@@ -371,12 +371,9 @@ unsigned int SG_TextureAtlas::DumpAllTransforms()
         for (int transform = 0; transform < TRANSFORMS_PER_IMAGE; transform++) {
             m_usageCounts[index * TRANSFORMS_PER_IMAGE + transform] = 0;
         }
-        if (normalCount > 0) {
-            dumpedGroups++;
-        }
-        if (transposedCount > 0) {
-            dumpedGroups++;
-        }
+        unsigned int normalGroups = normalCount > 0;
+        unsigned int groups = transposedCount > 0 ? normalGroups + 1 : normalGroups;
+        dumpedGroups += groups;
     }
     return dumpedGroups;
 }
@@ -669,8 +666,9 @@ unsigned char SG_Archetype::LoadLayers(DataInputStream& stream)
     if (m_layerCount == 0) {
         return 1;
     }
+    int layer = 0;
     m_layers = new SG_Layer[m_layerCount];
-    for (int layer = 0; layer < m_layerCount; layer++) {
+    for (; layer < m_layerCount; layer++) {
         m_layers[layer].Load(stream);
     }
     return stream.m_error == 0;
@@ -682,8 +680,9 @@ unsigned char SG_Archetype::LoadAnimations(DataInputStream& stream)
     if (m_animationCount == 0) {
         return 1;
     }
+    unsigned int animation = 0;
     m_animations = new SG_Animation[m_animationCount];
-    for (unsigned int animation = 0; animation < m_animationCount; animation++) {
+    for (; animation < m_animationCount; animation++) {
         m_animations[animation].Load(stream);
     }
     return stream.m_error == 0;
@@ -695,8 +694,9 @@ unsigned char SG_Archetype::LoadCharacters(DataInputStream& stream, unsigned sho
     if (m_characterCount == 0) {
         return 1;
     }
+    unsigned int index = 0;
     m_characters = new SG_Character[m_characterCount];
-    for (unsigned int index = 0; index < m_characterCount; index++) {
+    for (; index < m_characterCount; index++) {
         SG_Character& character = m_characters[index];
         character.m_loaded = 0;
         character.m_sprites.Init(spriteCount, &stream);

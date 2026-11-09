@@ -129,7 +129,7 @@ unsigned char CSystemFont_Cocoa::InitializeSurfaceWithText(graphics::ICRenderSur
     CGSize size = [string sizeWithFont:m_font];
     int width = (unsigned int)size.width;
     if (maxWidth >= 0) {
-        width = MIN(width, maxWidth);
+        width = MIN(maxWidth, width);
     }
     unsigned int height = GetFontHeight() + GetMinLineSpacing();
     if (maxHeight >= 0) {

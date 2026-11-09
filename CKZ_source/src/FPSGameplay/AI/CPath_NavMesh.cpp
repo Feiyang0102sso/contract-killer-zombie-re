@@ -155,15 +155,17 @@ void CPath_NavMesh::CreateSmoothInfo()
     }
     int index = 2;
     int last = m_pointCount - 1;
+    SWayPoint* next = &m_points[index];
     do {
-        m_smoothPoints[m_smoothCount].m_previous = &m_points[index - 2];
-        m_smoothPoints[m_smoothCount].m_current = &m_points[index - 1];
-        m_smoothPoints[m_smoothCount].m_next = &m_points[index];
+        m_smoothPoints[m_smoothCount].m_previous = next - 2;
+        m_smoothPoints[m_smoothCount].m_current = next - 1;
+        m_smoothPoints[m_smoothCount].m_next = next;
         m_smoothCount++;
         if (index >= last) {
             break;
         }
         index++;
+        next++;
     } while (m_smoothCount < 256);
 }
 

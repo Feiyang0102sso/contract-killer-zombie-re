@@ -160,18 +160,19 @@ void CScrollWindow::Update()
 
 void CScrollWindow::MoveContents(int x, int y)
 {
-    if (m_pages.size() < 1) {
-        return;
-    }
-    if (m_pages[0]->m_x > m_width && x > 0) {
-        return;
-    }
-    if (m_pages[m_pages.size() - 1]->m_x < -(m_width / 2) && x < 0) {
-        return;
+    if (m_pages.size() >= 1) {
+        if (m_pages[0]->m_x > m_width && x > 0) {
+            return;
+        }
+        if (m_pages[m_pages.size() - 1]->m_x < -(m_width / 2) && x < 0) {
+            return;
+        }
     }
     for (int index = 0; index < m_pages.size(); ++index) {
         Window* page = m_pages[index];
-        page->SetCorner(page->m_x + x, page->m_y);
+        int pageX = page->m_x;
+        int pageY = page->m_y;
+        page->SetCorner(pageX + x, pageY);
     }
 }
 

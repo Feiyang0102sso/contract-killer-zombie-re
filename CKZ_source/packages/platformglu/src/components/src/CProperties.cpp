@@ -59,7 +59,14 @@ void CProperties::Load(CInputStream& stream, unsigned char merge)
 
         if (merge && Exists(key.m_string)) {
             if (Replace(key.m_string, value.m_string) && m_overriddenKeys != NULL) {
-                if (!m_overriddenKeys->Contains(key)) {
+                int count = m_overriddenKeys->Size();
+                int index = 0;
+                for (; index < count; index++) {
+                    if ((*m_overriddenKeys)[index] == key) {
+                        break;
+                    }
+                }
+                if (index >= count) {
                     m_overriddenKeys->Add(CStrChar(key.m_string));
                 }
             }

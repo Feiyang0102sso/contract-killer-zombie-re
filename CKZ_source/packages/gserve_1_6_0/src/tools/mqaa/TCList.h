@@ -191,21 +191,21 @@ void TCList<T>::Remove(TCListItr<T>& itr)
 template <class T>
 T TCList<T>::PullLast()
 {
-    if (m_tail == NULL) {
-        return m_null;
-    }
-    T value(m_tail->m_data);
-    TCListNode<T>* last = m_tail;
-    m_tail = last->m_prev;
     if (m_tail != NULL) {
-        m_tail->m_next = NULL;
+        T value(m_tail->m_data);
+        TCListNode<T>* last = m_tail;
+        m_tail = last->m_prev;
+        if (m_tail != NULL) {
+            m_tail->m_next = NULL;
+        }
+        m_pool->Delete(last);
+        m_count--;
+        if (m_count == 0) {
+            m_head = NULL;
+        }
+        return value;
     }
-    m_pool->Delete(last);
-    m_count--;
-    if (m_count == 0) {
-        m_head = NULL;
-    }
-    return value;
+    return m_null;
 }
 
 template <class T>

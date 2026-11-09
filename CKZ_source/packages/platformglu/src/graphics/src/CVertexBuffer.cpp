@@ -66,9 +66,7 @@ void CVertexBuffer::Lock(Itr& itr, int first, int count, LockType lockType)
         } else {
             int wanted = m_stride * count;
             available = m_size - m_stride * first;
-            if (available > wanted) {
-                available = wanted;
-            }
+            available = wanted < available ? wanted : available;
         }
         if (available > 0) {
             unsigned char* begin = m_data + m_stride * first;

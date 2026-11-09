@@ -80,8 +80,9 @@ DGWorld::~DGWorld()
 
 void DGWorld::update()
 {
+    int animationTime = WindowApp::m_instance->m_updateTime;
     int validity = 0;
-    ((swerve::IObject3DInterface*)m_world.m_interface)->animate(WindowApp::m_instance->m_updateTime, &validity);
+    ((swerve::IObject3DInterface*)m_world.m_interface)->animate(animationTime, &validity);
     CStdUtil_Cocoa::GetUpTimeMS();
     if (m_nodeCount < 1) {
         return;

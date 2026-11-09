@@ -8,10 +8,20 @@ public:
     struct TTab {
         XString m_name;          // 00
         Window* m_window;        // 04, owned by the Window tree
-        short m_x;              // 08
-        short m_y;              // 0a
-        short m_width;          // 0c
-        short m_height;         // 0e
+        struct Bounds {
+            Bounds()
+            {
+                m_width = 0;
+                m_height = 0;
+                m_x = 0;
+                m_y = 0;
+            }
+
+            short m_x;              // 08
+            short m_y;              // 0a
+            short m_width;          // 0c
+            short m_height;         // 0e
+        } m_bounds;
         ImageRes m_image;        // 10
         bool m_locked;           // 18, total 1c
     };

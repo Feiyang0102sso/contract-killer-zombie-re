@@ -24,8 +24,8 @@ class FrustumCulling;
 class ObstaclesContainer {
 public:
     struct Static {
-        vec3 m_first;
-        vec3 m_second;
+        // The two endpoints are default-constructed as an array.
+        vec3 m_endpoints[2];
         vec3 m_direction;
         float m_radius;
     };

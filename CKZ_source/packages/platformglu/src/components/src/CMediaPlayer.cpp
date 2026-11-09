@@ -729,7 +729,7 @@ void CSoundEventStreamingADPCM::AddSamplesToBuffer(unsigned char* buffer, unsign
     unsigned int remaining = size;
     unsigned int offset = 0;
     while (remaining != 0 && m_state == State_Playing) {
-        unsigned int produced = GetResampledPcmSamplesFromStream(m_buffer, size, m_streamBuffer, size,
+        unsigned int produced = GetResampledPcmSamplesFromStream(m_buffer, remaining, m_streamBuffer, size,
                                                                  m_streamBufferUsed);
         unsigned int mixed = AddSamplesToBufferInternal(buffer, size, remaining, m_buffer + offset, produced);
         if (mixed == 0) {
@@ -952,7 +952,7 @@ void CSoundEventStreamingOGG::AddSamplesToBuffer(unsigned char* buffer, unsigned
     unsigned int remaining = size;
     unsigned int offset = 0;
     while (remaining != 0 && m_state == State_Playing) {
-        unsigned int produced = GetResampledPcmSamplesFromStream(m_buffer, size, m_streamBuffer, size,
+        unsigned int produced = GetResampledPcmSamplesFromStream(m_buffer, remaining, m_streamBuffer, size,
                                                                  m_streamBufferUsed);
         unsigned int mixed = AddSamplesToBufferInternal(buffer, size, remaining, m_buffer + offset, produced);
         if (mixed == 0) {

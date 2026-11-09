@@ -216,10 +216,15 @@ void CUnitMind::CancelChildrenExecutors(const IExecutor* parent)
 {
     int count = m_executors.size();
     if (parent == NULL) return;
-    int index = 0;
-    while (index < count && m_executors[index] != parent) ++index;
-    if (index < 0 || index >= count) return;
-    int first = index + 1;
+    int parentIndex = -1;
+    for (int index = 0; index < count; ++index) {
+        if (m_executors[index] == parent) {
+            parentIndex = index;
+            break;
+        }
+    }
+    if (parentIndex < 0) return;
+    int first = parentIndex + 1;
     for (int child = first; child < count; ++child) {
         IExecutor* executor = m_executors[child];
         if (executor != NULL && executor->m_state != 2) {

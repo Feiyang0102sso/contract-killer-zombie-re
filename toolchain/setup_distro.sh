@@ -21,7 +21,8 @@ DMG=${1:-$TOOLCHAIN/xcode/installxcode_421_lion.dmg}
 # ---- constants ----
 XCODE_SHA256=a9bb263383fe102749ac4ba4d0bb02fba4dd13d5de5d71582b11a4acd52ef835
 XCODE_DIR=/work/xcode421
-XCODE_PACKAGES="clang iPhoneSDK5_0 iPhoneHostSideTools iPhoneSDKTools"
+# DeveloperToolsCLI: the external cctools ARM `as` (b148; the original objects were assembled by it)
+XCODE_PACKAGES="clang iPhoneSDK5_0 iPhoneHostSideTools iPhoneSDKTools DeveloperToolsCLI"
 MALOADER_URL=https://github.com/shinh/maloader.git
 MALOADER_COMMIT=464a90fdfd06a54c9da5d1a3725ed6229c0d3d60
 MALOADER_DIR=/work/maloader_src/maloader
@@ -92,20 +93,28 @@ echo "== 4/5 ld64_root"
 mkdir -p "$LD64_ROOT/usr/bin" "$LD64_ROOT/usr/lib"
 cp -f "$LD64_SOURCE" "$LD64_ROOT/usr/bin/ld"
 cp -f "$LTO_SOURCE" "$LD64_ROOT/usr/lib/libLTO.dylib"
-chmod +x "$LD64_ROOT/usr/bin/ld" "$CLANG"
+AS=$XCODE_DIR/packages/DeveloperToolsCLI/usr/libexec/as/arm/as
+chmod +x "$LD64_ROOT/usr/bin/ld" "$CLANG" "$AS"
 
 echo "== 5/5 self check"
 # ld -v exits non-zero without inputs, so only the printed version is checked
 clang_version=$("$LOADER" "$CLANG" --version 2>&1 || true)
 ld_version=$("$LOADER" "$LD64_ROOT/usr/bin/ld" -v 2>&1 || true)
+# maloader also prints "sys_errlist/sys_nerr: undefined symbol" for `as`; harmless
+as_version=$("$LOADER" "$AS" -v < /dev/null 2>&1 | grep cctools || true)
 echo "$clang_version" | head -1
 echo "$ld_version" | head -1
+echo "$as_version" | head -1
 if ! echo "$clang_version" | grep -q 'clang-211.12'; then
     echo "self check failed: clang-211.12 does not run through maloader" >&2
     exit 1
 fi
 if ! echo "$ld_version" | grep -q 'ld64-127.2'; then
     echo "self check failed: ld64-127.2 does not run through maloader" >&2
+    exit 1
+fi
+if ! echo "$as_version" | grep -q 'cctools-809'; then
+    echo "self check failed: as (cctools-809) does not run through maloader" >&2
     exit 1
 fi
 echo "setup done"

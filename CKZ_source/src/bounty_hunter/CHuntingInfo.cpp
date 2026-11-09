@@ -12,9 +12,10 @@
 CHuntingInfo::CHuntingInfo()
     : m_field00(false), m_text04(0), m_assignedData(),
       m_result(BountyResultPending), m_flag3c(false), m_field54(0),
-      m_scoreAtStart(0), m_levelIncreased(false), m_currentWave(0),
+      m_levelIncreased(false), m_currentWave(0),
       m_civiliansRelativeHp(1.0f)
 {
+    m_scoreAtStart = 0;
     // The original constructor does not clear 8..10, 40..50 and 5c..68; statistics reset is handled by Clean.
 }
 

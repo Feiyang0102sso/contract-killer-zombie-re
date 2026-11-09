@@ -18,6 +18,10 @@ SDK=/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS5.0.sdk
 # rebuilt clang-211.10.1 (/work/build/clang-211.10.1, still used for llvm-mc and for comparison).
 LOADER=/work/maloader_src/maloader/ld-mac
 CLANG=/work/xcode421/packages/clang/usr/bin/clang
+# b148: Xcode 4.2.1's external ARM assembler (cctools as), also run through maloader. The original objects
+# were assembled by it: inside IT blocks it encodes "add Rd, Rd, Rm" with low registers as T1 (0x18xx)
+# where clang's integrated assembler picks T2 (0x44xx); see ckz_repo/recovery/m3/notes/b148-external-as.md.
+AS=/work/xcode421/packages/DeveloperToolsCLI/usr/libexec/as/arm/as
 BUILD=/work/ckz_build
 OUT=$BUILD/obj
 DEPS=$BUILD/dep
@@ -27,7 +31,7 @@ PREFIX_HEADER=$ROOT/zombsniper_Prefix.pch
 # M1 flags (see ckz_repo/recovery/m1/M1_REPORT.md); language flags per file type below
 # -fvisibility=hidden: Xcode "Symbols Hidden by Default"; original Glu symbols are private extern (N_PEXT),
 # and weak vtables of inline-only classes are addressed directly instead of via the GOT (b007 finding)
-COMMON_FLAGS="-arch armv7 -miphoneos-version-min=4.0 -isysroot $SDK -integrated-as -Os -g -fno-strict-aliasing -fvisibility=hidden"
+COMMON_FLAGS="-arch armv7 -miphoneos-version-min=4.0 -isysroot $SDK -no-integrated-as -Os -g -fno-strict-aliasing -fvisibility=hidden"
 CXX_FLAGS="-x c++ -fno-rtti -fno-exceptions"
 OBJCXX_FLAGS="-x objective-c++ -fno-rtti"
 OBJC_FLAGS="-x objective-c"
@@ -53,12 +57,24 @@ esac
 INCLUDE_FLAGS=$(cat "$BUILD/include_flags")
 
 TEMPORARY="$OUT/$BASE.o.tmp"
+ASSEMBLY="$OUT/$BASE.s.tmp"
 cd "$ROOT" || exit 1
 # The driver would exec itself for -cc1, which maloader cannot do: ask it for the -cc1 command line
-# with -### and run that line through maloader directly.
+# with -### and run that line through maloader directly. cc1 writes assembly (-S); the external `as`
+# then assembles it exactly as the driver would ("as -arch armv7 -o <object> <assembly>").
 CC1_LINE=$($LOADER $CLANG $COMMON_FLAGS $LANGUAGE $PREFIX_FLAGS $INCLUDE_FLAGS -MMD -MF "$DEPS/$BASE.d" -MT "$OUT/$BASE.o" \
-        -c "$ROOT/$RELATIVE" -o "$TEMPORARY" -### 2>&1 | grep '"-cc1"')
+        -S "$ROOT/$RELATIVE" -o "$ASSEMBLY" -### 2>&1 | grep '"-cc1"')
+COMPILED=0
 if [ -n "$CC1_LINE" ] && eval "$LOADER $CC1_LINE" > "$LOGS/$BASE.log" 2>&1; then
+    rm -f "$TEMPORARY"
+    # maloader prints a harmless "sys_errlist/sys_nerr: undefined symbol" note for `as`; keep the rest
+    $LOADER $AS -arch armv7 -o "$TEMPORARY" "$ASSEMBLY" 2>&1 | grep -v "sys_errlist\|sys_nerr" >> "$LOGS/$BASE.log"
+    if [ -s "$TEMPORARY" ]; then
+        COMPILED=1
+    fi
+fi
+rm -f "$ASSEMBLY"
+if [ "$COMPILED" = 1 ]; then
     mv -f "$TEMPORARY" "$OUT/$BASE.o"
     echo "ok   $RELATIVE"
 else

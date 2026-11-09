@@ -50,11 +50,12 @@ CObjectMapObject* CInviteOfferDataSetSelected::generateJSON() const
         // Original quirk: the array leaks when the network has no invitee.
         CObjectMapArray* friendIds = new CObjectMapArray();
         int count = 0;
-        for (CLinkListNode* node = m_invitees[network].m_list.m_head; node != NULL; node = node->m_next) {
-            CStrWChar* friendId = (CStrWChar*)node->m_data;
+        // b147: the list accessors and addEntry are inline calls in the original (their order sets the stack slots)
+        for (CLinkListNode* node = m_invitees[network].m_list.GetHead(); node != NULL; node = node->GetNext()) {
+            CStrWChar* friendId = (CStrWChar*)node->GetData();
             if (friendId != NULL) {
                 count++;
-                friendIds->m_values.Add(new CObjectMapString(*friendId));
+                friendIds->addEntry(new CObjectMapString(*friendId));
             }
         }
         if (count > 0) {
@@ -112,9 +113,10 @@ CObjectMapObject* COfferDataSetRewarded::generateJSON() const
     generateBaseJSON(*object);
     CObjectMapArray* rewardIds = new CObjectMapArray();
     char text[256] = {0};
+    // b147: values go through the inline CObjectMapArray::addEntry (its parameter slot is in the original frame)
     for (unsigned int index = 0; index < (unsigned int)m_userGameRewardIds.Size(); index++) {
         ICStdUtil::SPrintF(text, "%i", m_userGameRewardIds[index]);
-        rewardIds->m_values.Add(new CObjectMapString(CStrWChar(text)));
+        rewardIds->addEntry(new CObjectMapString(CStrWChar(text)));
     }
     object->addEntry(CStrWChar(L"userGameRewardIds"), rewardIds);
     return object;

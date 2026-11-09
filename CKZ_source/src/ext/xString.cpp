@@ -448,10 +448,11 @@ XString& XString::InsertData(int startByte, const void* bytes, int byteCount)
 {
     if (startByte >= 0) {
         const char* oldChars = (const char*)m_data;
-        int oldSize = ((const Data*)oldChars - 1)->m_byteSize;
+        Data* oldData = GetData();
+        int oldSize = oldData->m_byteSize;
         if (startByte <= oldSize) {
             Init(oldChars, startByte, bytes, byteCount, oldChars + startByte, oldSize - startByte);
-            ((Data*)oldChars - 1)->Release();
+            oldData->Release();
         }
     }
     return *this;

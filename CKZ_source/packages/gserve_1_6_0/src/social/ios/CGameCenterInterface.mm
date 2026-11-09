@@ -122,12 +122,14 @@ int CGameCenterInterface::getConnectionState()
 
 CStrWChar CGameCenterInterface::getPlayerID()
 {
-    return CStrWChar([CUtil NSStringToWchar:[GC_MANAGER getLocalUserID]]);
+    NSString* playerId = [GC_MANAGER getLocalUserID];
+    return CStrWChar([CUtil NSStringToWchar:playerId]);
 }
 
 CStrWChar CGameCenterInterface::getPlayerAlias()
 {
-    return CStrWChar([CUtil NSStringToWchar:[GC_MANAGER getLocalUserAlias]]);
+    NSString* alias = [GC_MANAGER getLocalUserAlias];
+    return CStrWChar([CUtil NSStringToWchar:alias]);
 }
 
 int CGameCenterInterface::getFriendsCount()
@@ -137,7 +139,8 @@ int CGameCenterInterface::getFriendsCount()
 
 CStrWChar CGameCenterInterface::getFriendIDAtIndex(int index)
 {
-    return CStrWChar([CUtil NSStringToWchar:[[GC_MANAGER getFriends] objectAtIndex:index]]);
+    NSString* friendId = [[GC_MANAGER getFriends] objectAtIndex:index];
+    return CStrWChar([CUtil NSStringToWchar:friendId]);
 }
 
 void CGameCenterInterface::reportScore(int score, const CStrWChar& category)
@@ -145,7 +148,8 @@ void CGameCenterInterface::reportScore(int score, const CStrWChar& category)
     char categoryText[256] = {0};
     wcstombs(categoryText, category.m_string, wcslen(category.m_string) + 1);
     CStrChar categoryName(categoryText);
-    NSString* categoryString = [[[NSString alloc] initWithUTF8String:categoryName.GetCharPtr()] autorelease];
+    const char* categoryChars = categoryName.GetCharPtr();
+    NSString* categoryString = [[[NSString alloc] initWithUTF8String:categoryChars] autorelease];
     [GC_MANAGER reportScore:score forCategory:categoryString];
 }
 
@@ -174,7 +178,8 @@ void CGameCenterInterface::reportAchievement(int percent, const CStrWChar& ident
     char identifierText[256] = {0};
     wcstombs(identifierText, identifier.m_string, wcslen(identifier.m_string) + 1);
     CStrChar identifierName(identifierText);
-    NSString* identifierString = [[[NSString alloc] initWithUTF8String:identifierName.GetCharPtr()] autorelease];
+    const char* identifierChars = identifierName.GetCharPtr();
+    NSString* identifierString = [[[NSString alloc] initWithUTF8String:identifierChars] autorelease];
     [GC_MANAGER reportAchievementIdentifier:identifierString percentComplete:percent];
 }
 

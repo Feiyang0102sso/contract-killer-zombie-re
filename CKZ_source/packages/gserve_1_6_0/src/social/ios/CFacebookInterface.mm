@@ -48,7 +48,8 @@ void CFacebookInterface::setAppID(CStrWChar appId, CStrWChar appSecret)
     char buffer[APP_ID_BUFFER_SIZE] = {0};
     wcstombs(buffer, appId.m_string, wcslen(appId.m_string) + 1);
     CStrChar narrowAppId(buffer);
-    NSString* appIdString = [[[NSString alloc] initWithUTF8String:narrowAppId.GetCharPtr()] autorelease];
+    const char* appIdChars = narrowAppId.GetCharPtr();
+    NSString* appIdString = [[[NSString alloc] initWithUTF8String:appIdChars] autorelease];
     [(CFacebookManager*)m_nativeManager setAppID:appIdString];
 }
 

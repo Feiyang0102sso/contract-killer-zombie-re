@@ -211,8 +211,8 @@ bool DGCamera::rotateLeft(float angle, bool unconstrained)
 {
     bool moved = false;
     if (!m_returningToCenter) {
-        m_field0c += angle;
         moved = true;
+        m_field0c += angle;
         if (!unconstrained && m_field0c > m_horizontalLimit) {
             m_field0c = m_horizontalLimit;
             moved = false;
@@ -226,8 +226,8 @@ bool DGCamera::rotateRight(float angle, bool unconstrained)
 {
     bool moved = false;
     if (!m_returningToCenter) {
-        m_field0c -= angle;
         moved = true;
+        m_field0c -= angle;
         if (!unconstrained && m_field0c < -m_horizontalLimit) {
             m_field0c = -m_horizontalLimit;
             moved = false;
@@ -241,8 +241,8 @@ bool DGCamera::rotateUp(float angle, bool unconstrained)
 {
     bool moved = false;
     if (!m_returningToCenter) {
-        m_field1c += angle;
         moved = true;
+        m_field1c += angle;
         if (!unconstrained && m_field1c > m_verticalLimit) {
             m_field1c = m_verticalLimit;
             moved = false;
@@ -256,8 +256,8 @@ bool DGCamera::rotateDown(float angle, bool unconstrained)
 {
     bool moved = false;
     if (!m_returningToCenter) {
-        m_field1c -= angle;
         moved = true;
+        m_field1c -= angle;
         if (!unconstrained && m_field1c < -m_verticalLimit) {
             m_field1c = -m_verticalLimit;
             moved = false;
@@ -310,8 +310,8 @@ float calcWave(float time, float amplitude, float envelope, float* frequencies)
 void DGCamera::Update(int elapsedMs)
 {
     UpdateReturnToCenter(elapsedMs);
+    float seconds = elapsedMs * 0.001;
     if (m_shakeTimeLeft > 0) {
-        float seconds = elapsedMs * 0.001;
         m_shakeOffset.x = calcWave(m_shakeTimeLeft, m_shakeAmplitude, m_shakeEnvelope, m_shakeFrequencies);
         m_shakeOffset.y = calcWave(m_shakeTimeLeft, m_shakeAmplitude, m_shakeEnvelope, m_shakeFrequencies + 3);
         m_shakeOffset.z = calcWave(m_shakeTimeLeft, m_shakeAmplitude, m_shakeEnvelope, m_shakeFrequencies + 6);
@@ -334,7 +334,7 @@ void DGCamera::Update(int elapsedMs)
             cylinder.setRenderingEnable(true);
         } else {
             m_shotElapsed += elapsedMs;
-            if (m_shotElapsed > m_shotDuration) {
+            if (m_shotElapsed >= m_shotDuration) {
                 m_shotElapsed = m_shotDuration;
             }
             float fraction = (float)m_shotElapsed / m_shotDuration;
@@ -544,13 +544,18 @@ bool DGCamera::GetScreenPosition(int* x, int* y, const vec3& point)
     position[3] = 1.0f;
     view.transform(4, position);
     projection.transform(4, position);
+    // b147: the original loads x/y in the w-test block (all four read up front, then sunk).
+    float clipX = position[0];
+    float clipY = position[1];
+    float clipZ = position[2];
+    float clipW = position[3];
     bool visible = false;
     // 0x169014 branches on ordered <= 0: unordered z proceeds to the w test.
-    if (!(position[2] <= 0)) {
-        if (!(position[3] > -1e-12f && position[3] < 1e-12f)) {
+    if (!(clipZ <= 0)) {
+        if (!(clipW > -1e-12f && clipW < 1e-12f)) {
             visible = true;
-            float normalizedX = position[0] / position[3];
-            float normalizedY = position[1] / position[3];
+            float normalizedX = clipX / clipW;
+            float normalizedY = clipY / clipW;
             int width = ((App*)WindowApp::m_instance)->m_helper->m_screenWidth;
             int height = ((App*)WindowApp::m_instance)->m_helper->m_screenHeight;
             *x = (normalizedX + 1.0f) * 0.5f * width;

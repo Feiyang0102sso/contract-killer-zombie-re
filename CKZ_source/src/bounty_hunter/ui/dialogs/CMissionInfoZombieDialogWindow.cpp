@@ -260,8 +260,8 @@ CMissionInfoZombieDialogWindow::~CMissionInfoZombieDialogWindow()
         // Original 14ba18 transfers the two words to a local and clears the member; the local immediately releases the old track.
         com::glu::platform::core::CSharedPtr<TrackHandler> released;
         released.m_pointer = m_track.m_pointer;
-        released.m_count = m_track.m_count;
         m_track.m_pointer = NULL;
+        released.m_count = m_track.m_count;
         m_track.m_count = NULL;
     }
 }
@@ -331,11 +331,11 @@ CEndlessModeInfoZombieDialogWindow::CEndlessModeInfoZombieDialogWindow(const CMi
         heading->SetHeightByContent(0, 0);
         heading->SetOutsetSpacing(8);
         {
-            const char* key = "IDS_ENDLESS_MODE_LEADERBOARD_SCORES";
-            if (((App*)WindowApp::m_instance)->m_leaderboardsManager->m_isFriendsBoard) {
-                key = "IDS_ENDLESS_MODE_LEADERBOARD_FRIENDS";
-            }
-            XString headingText = XString("\n") + ResString(key);
+            // b146: the original builds the "\n" temporary first and reads the flag inside the same
+            // full expression (select between the two keys right before ResString).
+            XString headingText = XString("\n") + ResString(((App*)WindowApp::m_instance)->m_leaderboardsManager->m_isFriendsBoard
+                                                            ? "IDS_ENDLESS_MODE_LEADERBOARD_FRIENDS"
+                                                            : "IDS_ENDLESS_MODE_LEADERBOARD_SCORES");
             TextWindow* label = new TextWindow(headingText, playerFont);
             label->SetCellPos(0, 0, 2, 1);
             label->SetAlign(0x24);

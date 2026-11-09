@@ -488,10 +488,8 @@ void CHttpTransport_gServe::ParseChunkData()
     CHttpDataChunk_gServe* chunk = (CHttpDataChunk_gServe*)m_chunks.GetTail();
     if (chunk != NULL) {
         unsigned int missing = chunk->m_size - chunk->m_received;
-        unsigned int count = m_bufferLength;
-        if (count > missing) {
-            count = missing;
-        }
+        unsigned int available = m_bufferLength;
+        unsigned int count = available > missing ? missing : available;
         if (count != 0) {
             memcpy(chunk->m_data + chunk->m_received, m_buffer, count);
             missing -= count;

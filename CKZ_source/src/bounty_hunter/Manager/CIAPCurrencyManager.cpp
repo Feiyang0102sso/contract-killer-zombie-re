@@ -87,7 +87,14 @@ void CIAPCurrencyManager::loadResources()
 void CIAPCurrencyManager::UpdateIAPInfo(bool force)
 {
     // The shipped implementation ignores force and always uses a 60000 ms request timeout.
-    ICInAppPurchase* store = ICInAppPurchase::GetInstance();
+    com::glu::platform::framework::CApp* app = CApplet::m_pApp;
+    void* found = NULL;
+    unsigned int classId = ClassId_ICInAppPurchase;
+    app->m_singletons->Find(classId, &found);
+    ICInAppPurchase* store = static_cast<ICInAppPurchase*>(found);
+    if (store == NULL) {
+        store = ICInAppPurchase::CreateInstance();
+    }
     CVector<CStrWChar> products;
     for (int index = 0; index < m_items.size(); index++) {
         XString appleId = m_items[index]->m_appleId;

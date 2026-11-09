@@ -122,8 +122,7 @@ void CUpdateManager::copyFromCacheToWork(const wchar_t* fileName, const wchar_t*
     CStrWChar cachedPath;
     CFileUtil_gServe::GenerateCacheFilePath(folder, fileName, cachedPath);
     if (cachedPath.GetLength() != 0) {
-        CStrWChar workPath;
-        workPath += m_workPath;
+        CStrWChar workPath(m_workPath);
         workPath += L"/";
         workPath += fileName;
         copyFile(cachedPath.GetWCharPtr(), workPath.GetWCharPtr());

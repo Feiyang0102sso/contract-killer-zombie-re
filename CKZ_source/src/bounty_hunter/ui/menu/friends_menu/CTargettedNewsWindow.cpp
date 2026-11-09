@@ -11,11 +11,12 @@ CTargettedNewsWindow::CTargettedNewsWindow(const STargettedMessage*)
 
 void CTargettedNewsWindow::OnCommand(Event& event)
 {
-    if ((unsigned int)event.m_id == 0x0e6a3ddbu) {
+    // b147: original places the revenge (0x0f207fba) block first, so it is written first.
+    if ((unsigned int)event.m_id == 0x0f207fbau) {
+        HandleRevengePressed();
+    } else if ((unsigned int)event.m_id == 0x0e6a3ddbu) {
         ((App*)WindowApp::m_instance)->m_newsFeedManager->RemoveMessage(m_message, m_messageId);
         Close();
-    } else if ((unsigned int)event.m_id == 0x0f207fbau) {
-        HandleRevengePressed();
     } else {
         return;
     }

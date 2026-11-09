@@ -119,13 +119,8 @@ void CGPSItem::Paint(ICGraphics2d&, int x, int y)
         float opacity = MathLib::Fabs((float)((int)((unsigned int)CStdUtil_Cocoa::GetUpTimeMS() % 800) - 400)) / 800.0f + 0.5f;
         ((App*)WindowApp::m_instance)->m_helper->DrawImage(m_blinkImage, drawX + m_width / 2, drawY + m_height / 2, opacity, 0, 0, 0.0f, 0x30);
     }
-    CFont* font = m_font;
-    const wchar_t* text = m_screenName.m_data;
-    int textAreaWidth = GetWidth();
-    int textWidth = m_nameWidth;
-    int textY = GetWidth() + drawY;
-    const Color_RGBA* color = &WindowApp::m_instance->Color();
-    font->PaintText(text, -1, drawX + textAreaWidth / 2 - textWidth / 2, textY, -1, -1, color);
+    m_font->PaintText(m_screenName.m_data, -1, drawX + GetWidth() / 2 - m_nameWidth / 2,
+                      GetWidth() + drawY, -1, -1, &WindowApp::m_instance->Color());
     WindowApp::m_instance->PopColorStack();
     ICGraphics::GetInstance()->GetRasterizerState()->PopState(ICRasterizerState::State_Blending);
 }

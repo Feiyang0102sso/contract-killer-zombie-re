@@ -231,7 +231,8 @@ Fragments::Fragments(int capacity,float age,vec3 gravity,CCollision* collision,E
     m_root=Group(m_scene.find(DGHelper::getSwerveID("RootNode")));
     for (int index=0;index<16;index++) {
         XString name=XString::Format(L"Particle%02dTransform",index+1);
-        m_variants[index]=Group(m_root.find(DGHelper::getSwerveID(XString::AnsiString(name.c_str()))));
+        XString::AnsiString ansiName(name.c_str());
+        m_variants[index]=Group(m_root.find(DGHelper::getSwerveID(ansiName)));
     }
 }
 Fragments::~Fragments() { delete[] m_particles; }
@@ -269,7 +270,8 @@ SmokeTrail::SmokeTrail(int capacity,float age,CCollision* collision)
     m_root=Group(m_scene.find(DGHelper::getSwerveID("RootNode")));
     for (int index=0;index<16;index++) {
         XString name=XString::Format(L"Particle%02dTransform",index+1);
-        m_variants[index]=Group(m_root.find(DGHelper::getSwerveID(XString::AnsiString(name.c_str()))));
+        XString::AnsiString ansiName(name.c_str());
+        m_variants[index]=Group(m_root.find(DGHelper::getSwerveID(ansiName)));
     }
     m_rotationNext=0;
     m_rotations=new Rotation[capacity];
@@ -314,14 +316,19 @@ void Fragments::Paint3D(swerve::Graphics3D<CSwerveAssertingErrorHandler>& graphi
     Game()->m_camera->GetViewDirection();
     Game()->GetCurrentCameraRight();
     vec3 cameraUp=Game()->GetCurrentCameraUp();
+    // b147: the original reads the particle size once, before the scale selection (0xec3fc).
+    float sizeX=m_size.m_x;
+    float sizeZ=m_size.m_z;
     float nearScale=3.0f;
     float farScale=0.75f;
     if (m_type==PARTICLE_SEGMENT || m_type==PARTICLE_TRAIL) { nearScale=4.0f; farScale=0.5f; }
-    Mat4x4 matrix(1.0f);
+    // b147: a plain row-major identity array (memset + four diagonal stores at 0xec436), not Mat4x4(1.0f).
+    float values[16] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     Transform renderTransform(CSwerve::GetInstance()->m_swerve);
+    // b147: setIdentity runs before the other two transforms are created (0xec49a).
+    renderTransform.setIdentity();
     Transform basis(CSwerve::GetInstance()->m_swerve);
     Transform scratch(CSwerve::GetInstance()->m_swerve);
-    renderTransform.setIdentity();
     for (int index=0;index<16;index++) { m_variants[index].setRenderingEnable(false); }
     int batch=0;
     for (int index=0;index<count;index++) {
@@ -351,15 +358,21 @@ void Fragments::Paint3D(swerve::Graphics3D<CSwerveAssertingErrorHandler>& graphi
         vec3 axis=Unit(segment);
         vec3 side=Unit(axis.Cross(front));
         float scale=farScale*fade+nearScale*(1.0f-fade);
-        vec3 first=axis*m_size.m_x*Length(segment)*scale;
-        vec3 second=side*m_size.m_z*scale;
-        vec3 third=front*m_size.m_x*Length(segment)*scale;
-        float* values=matrix.ToFloatPtr();
-        values[0]=first.m_x; values[4]=first.m_y; values[8]=first.m_z;
-        values[1]=second.m_x; values[5]=second.m_y; values[9]=second.m_z;
-        values[2]=third.m_x; values[6]=third.m_y; values[10]=third.m_z;
-        if (m_type==PARTICLE_FLASH) {
-            matrix.SetTranslation(vec3());
+        vec3 first=axis*sizeX*Length(segment)*scale;
+        vec3 second=side*sizeZ*scale;
+        vec3 third=front*sizeX*Length(segment)*scale;
+        // b147: both branches fill the rows (basis and translation interleaved); the common
+        // first three stores are hoisted, as in the original (0xec876).
+        // b147: the original lays out the non-flash rows first (beq to the flash block).
+        if (m_type!=PARTICLE_FLASH) {
+            values[0]=first.m_x; values[1]=second.m_x; values[2]=third.m_x; values[3]=center.m_x;
+            values[4]=first.m_y; values[5]=second.m_y; values[6]=third.m_y; values[7]=center.m_y;
+            values[8]=first.m_z; values[9]=second.m_z; values[10]=third.m_z; values[11]=center.m_z;
+            scratch.set(values);
+        } else {
+            values[0]=first.m_x; values[1]=second.m_x; values[2]=third.m_x; values[3]=0.0f;
+            values[4]=first.m_y; values[5]=second.m_y; values[6]=third.m_y; values[7]=0.0f;
+            values[8]=first.m_z; values[9]=second.m_z; values[10]=third.m_z; values[11]=0.0f;
             basis.set(values);
             scratch.setIdentity();
             float rotation[4]={particle->m_rotation,third.m_x,third.m_y,third.m_z};
@@ -369,9 +382,6 @@ void Fragments::Paint3D(swerve::Graphics3D<CSwerveAssertingErrorHandler>& graphi
             scratch.setIdentity();
             scratch.postTranslate(&center.m_x);
             scratch.postMultiply(basis);
-        } else {
-            matrix.SetTranslation(center);
-            scratch.set(values);
         }
         m_variants[particle->m_variant].setTransform(scratch);
         m_variants[particle->m_variant].setRenderingEnable(true);
@@ -390,13 +400,16 @@ void SmokeTrail::Paint3D(swerve::Graphics3D<CSwerveAssertingErrorHandler>& graph
     int count=m_activeCount;
     vec3 camera=Game()->GetCurrentCameraPos();
     vec3 viewDirection=Game()->m_camera->GetViewDirection();
-    Mat4x4 matrix(1.0f);
+    // b147: row-major identity array (libc memset + diagonal stores), as in Fragments::Paint3D.
+    float values[16] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     Transform renderTransform(CSwerve::GetInstance()->m_swerve);
     renderTransform.setIdentity();
     int batch=0;
     for (int index=0;index<count;index++) {
         Projectile& projectile=m_projectiles[m_activeIndices[index]];
         if (projectile.m_active==false) { continue; }
+        // b147: the original fetches the per-particle rotation pointer before the Pow call (0xed098).
+        Rotation* spin=(Rotation*)projectile.m_userData;
         float age=projectile.m_age/m_maxAge;
         if (age>1.0f) { age=1.0f; }
         float scale=MathLib::Pow(age,0.5f);
@@ -408,19 +421,19 @@ void SmokeTrail::Paint3D(swerve::Graphics3D<CSwerveAssertingErrorHandler>& graph
         vec3 first=axis*scale*75.0f;
         vec3 second=side*scale*75.0f;
         vec3 third=front*scale*75.0f;
-        float* values=matrix.ToFloatPtr();
-        values[0]=first.m_x; values[4]=first.m_y; values[8]=first.m_z;
-        values[1]=second.m_x; values[5]=second.m_y; values[9]=second.m_z;
-        values[2]=third.m_x; values[6]=third.m_y; values[10]=third.m_z;
-        matrix.SetTranslation(vec3());
+        values[0]=first.m_x; values[1]=second.m_x; values[2]=third.m_x; values[3]=0.0f;
+        values[4]=first.m_y; values[5]=second.m_y; values[6]=third.m_y; values[7]=0.0f;
+        values[8]=first.m_z; values[9]=second.m_z; values[10]=third.m_z; values[11]=0.0f;
         m_basis.set(values);
         m_scratch.setIdentity();
-        float rotation[4]={((Rotation*)projectile.m_userData)->m_angle,third.m_x,third.m_y,third.m_z};
+        float rotation[4]={spin->m_angle,third.m_x,third.m_y,third.m_z};
         m_scratch.postRotate(rotation);
         m_scratch.postMultiply(m_basis);
         m_basis.multiply(m_scratch);
         m_scratch.setIdentity();
-        m_scratch.postTranslate(&center.m_x);
+        // b147: the original copies the center into a fresh float[3] right before postTranslate (0xed286).
+        float translation[3]={center.m_x,center.m_y,center.m_z};
+        m_scratch.postTranslate(translation);
         m_scratch.postMultiply(m_basis);
         m_variants[batch].setTransform(m_scratch);
         m_variants[batch].setAlphaFactor(1.0f-projectile.m_age/m_maxAge);
@@ -428,9 +441,11 @@ void SmokeTrail::Paint3D(swerve::Graphics3D<CSwerveAssertingErrorHandler>& graph
         if (batch==16) { graphics.render(m_root.m_interface,renderTransform.m_interface); batch=0; }
     }
     if (batch>0) {
-        matrix.SetTranslation(camera-viewDirection*10000.0f);
-        m_basis.set(matrix.ToFloatPtr());
-        for (int index=batch;index<16;index++) { m_variants[index].setTransform(m_basis); }
+        vec3 hidden=camera-viewDirection*10000.0f;
+        values[3]=hidden.m_x; values[7]=hidden.m_y; values[11]=hidden.m_z;
+        m_basis.set(values);
+        // b147: unsigned loop index (bhi at 0xed384).
+        for (unsigned int index=batch;index<16;index++) { m_variants[index].setTransform(m_basis); }
         graphics.render(m_root.m_interface,renderTransform.m_interface);
     }
 }
@@ -792,7 +807,8 @@ HandGrenadeBallistics::HandGrenadeBallistics(CCollision* collision)
     m_flareRoot=Group(m_flareScene.find(DGHelper::getSwerveID("RootNode")));
     for (int index=0;index<8;index++) {
         XString name=XString::Format(L"Particle%02dTransform",index+1);
-        m_flares[index]=Group(m_flareRoot.find(DGHelper::getSwerveID(XString::AnsiString(name.c_str()))));
+        XString::AnsiString ansiName(name.c_str());
+        m_flares[index]=Group(m_flareRoot.find(DGHelper::getSwerveID(ansiName)));
     }
     {
         swerve::Object3D<CSwerveAssertingErrorHandler> auxiliary((IQueryInterface*)CSwerve::GetInstance()->LoadM3GResource("BIN_AUX_RENDER"));
@@ -800,8 +816,17 @@ HandGrenadeBallistics::HandGrenadeBallistics(CCollision* collision)
     }
     m_sphere=swerve::Mesh<CSwerveAssertingErrorHandler>(m_auxScene.find(DGHelper::getSwerveID("Sphere")));
     CGrenade* grenade=((App*)WindowApp::m_instance)->m_grenadeManager->GetActiveGrenade();
-    if (grenade==NULL) { m_normalBounce=0.1f; m_tangentRetention=0.75f; m_drag=0.125f; }
-    else { m_normalBounce=grenade->m_bounce; m_tangentRetention=grenade->m_friction; m_drag=grenade->m_drag; }
+    if (grenade!=NULL) {
+        float bounce = grenade->m_bounce;
+        float friction = grenade->m_friction;
+        m_normalBounce = bounce;
+        m_tangentRetention = friction;
+        m_drag = grenade->m_drag;
+    } else {
+        m_normalBounce = 0.1f;
+        m_tangentRetention = 0.75f;
+        m_drag = 0.125f;
+    }
 }
 HandGrenadeBallistics::~HandGrenadeBallistics()
 {
@@ -870,9 +895,8 @@ bool HandGrenadeBallistics::Pick(const CCollision::Line& line,int& activeIndex)
         if (projectile.m_active) {
             HandGrenade* grenade=(HandGrenade*)projectile.m_userData;
             if (grenade==NULL) { continue; }
-            CCollision::Sphere sphere;
-            sphere.m_center=projectile.m_position;
-            sphere.m_radius=grenade->GetHitzoneRadius();
+            float radius=grenade->GetHitzoneRadius();
+            CCollision::Sphere sphere={projectile.m_position,radius};
             vec3 point;
             if (CCollision::Intersect(line,sphere,point)) {
                 float cameraDistance=Length(projectile.m_position-Game()->GetCurrentCameraPos());
@@ -890,16 +914,19 @@ bool HandGrenadeBallistics::Pick(const CCollision::Line& line,int& activeIndex)
 }
 void HandGrenadeBallistics::Pick(float x,float y,swerve::Camera<CSwerveAssertingErrorHandler> camera)
 {
-    swerve::RayIntersection<CSwerveAssertingErrorHandler> intersection(CSwerve::GetInstance()->m_swerve);
     App* app=(App*)WindowApp::m_instance;
+    x/=(float)app->m_helper->m_screenWidth;
+    y/=(float)app->m_helper->m_screenHeight;
+    swerve::RayIntersection<CSwerveAssertingErrorHandler> intersection(CSwerve::GetInstance()->m_swerve);
     int count=m_activeCount;
     for (int index=0;index<count;index++) {
         Projectile& projectile=m_projectiles[m_activeIndices[index]];
         if (projectile.m_active && projectile.m_userData!=NULL) {
             HandGrenade* grenade=(HandGrenade*)projectile.m_userData;
             Group model=grenade->GetVisualModel();
-            if (model.pick(-1,x/(float)app->m_helper->m_screenWidth,y/(float)app->m_helper->m_screenHeight,camera,intersection)) {
-                grenade->OnBulletHit(Length(projectile.m_position-Game()->GetCurrentCameraPos()));
+            if (model.pick(-1,x,y,camera,intersection)) {
+                float distance=Length(projectile.m_position-Game()->GetCurrentCameraPos());
+                grenade->OnBulletHit(distance);
             }
         }
     }
@@ -1092,7 +1119,8 @@ void HandGrenadeBallistics::Paint3D(swerve::Graphics3D<CSwerveAssertingErrorHand
     Game()->m_camera->GetViewDirection();
     Game()->GetCurrentCameraRight();
     vec3 up=Game()->GetCurrentCameraUp();
-    Mat4x4 matrix(1.0f);
+    // b147: row-major identity array (libc memset + diagonal stores), as in Fragments::Paint3D.
+    float values[16] = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     Transform renderTransform(CSwerve::GetInstance()->m_swerve);
     renderTransform.setIdentity();
     Transform basis(CSwerve::GetInstance()->m_swerve);
@@ -1116,11 +1144,9 @@ void HandGrenadeBallistics::Paint3D(swerve::Graphics3D<CSwerveAssertingErrorHand
         vec3 first=axis*50.0f*scale*Length(up);
         vec3 second=side*50.0f*scale;
         vec3 third=front*50.0f*scale*Length(up);
-        float* values=matrix.ToFloatPtr();
-        values[0]=first.m_x; values[4]=first.m_y; values[8]=first.m_z;
-        values[1]=second.m_x; values[5]=second.m_y; values[9]=second.m_z;
-        values[2]=third.m_x; values[6]=third.m_y; values[10]=third.m_z;
-        matrix.SetTranslation(vec3());
+        values[0]=first.m_x; values[1]=second.m_x; values[2]=third.m_x; values[3]=0.0f;
+        values[4]=first.m_y; values[5]=second.m_y; values[6]=third.m_y; values[7]=0.0f;
+        values[8]=first.m_z; values[9]=second.m_z; values[10]=third.m_z; values[11]=0.0f;
         basis.set(values);
         scratch.setIdentity();
         float rotation[4]={0.0f,third.m_x,third.m_y,third.m_z};
@@ -1128,7 +1154,9 @@ void HandGrenadeBallistics::Paint3D(swerve::Graphics3D<CSwerveAssertingErrorHand
         scratch.postMultiply(basis);
         basis.multiply(scratch);
         scratch.setIdentity();
-        scratch.postTranslate(&center.m_x);
+        // b147: the center is copied into a fresh float[3] right before postTranslate (as in SmokeTrail).
+        float translation[3]={center.m_x,center.m_y,center.m_z};
+        scratch.postTranslate(translation);
         scratch.postMultiply(basis);
         m_flares[batch].setTransform(scratch);
         if (grenade->HasIgniteFlare()) { m_flares[batch].setRenderingEnable(true); }

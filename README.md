@@ -19,12 +19,13 @@
 | 组件 | 原版 | 本项目 | 对齐 | 备注 |
 | --- | --- | --- | :---: | --- |
 | 编译器 | Apple clang 3.0 | clang-211.12（Xcode 4.2.1 4D502 自带） | ⚠️ | 按代码生成特征判定：公开源码能编出的 211.10.1 会多出 `vorr`、拆开 `vpop`，换用 211.12 后这些差异全部消失 |
+| 汇编器 | cctools as | cctools-809（同一 Xcode 的外部 `as`，clang 加 `-no-integrated-as`） | ⚠️ | 按编码判定：IT 块里低寄存器 `add` 原版全是 T1 编码，clang 内置汇编器只出 T2；换用外部 `as` 后自家 13 个、第三方库 12 个函数变为一致，无退化 |
 | 链接器 | ld64 | ld64-127.2（同一 Xcode） | ⚠️ | 文件头标志、32 个 dylib 的顺序和弱加载与原版一致；整文件尚未逐字节一致 |
 | iOS SDK | — | iPhoneOS 5.0 SDK（同一 Xcode） | ⚠️ | `-miphoneos-version-min=4.0` |
 | 编译参数 | — | `-Os -g -fno-strict-aliasing -fvisibility=hidden`<br>C++：`-fno-rtti -fno-exceptions`<br>Objective-C++：`-fno-rtti` | ✅ | 由逐字节一致的函数反推；原版 Glu 符号全是 private extern，可证明开了 `-fvisibility=hidden` |
 | 构建路径 | `/Applications/buildAgent/work/c426877c688cbe05/` | 同左（bind mount） | ✅ | `__FILE__` 字符串和调试信息里的编译目录与原版相同 |
 
-Xcode 4.2.1 的 clang 和 ld 是 x86_64 Mach-O 程序。本项目用打了 3 处补丁的 [maloader](https://github.com/shinh/maloader) 在 Linux 上直接运行它们，补丁见 `toolchain/patches/maloader.patch`。
+Xcode 4.2.1 的 clang、as 和 ld 是 x86_64 Mach-O 程序。本项目用打了 3 处补丁的 [maloader](https://github.com/shinh/maloader) 在 Linux 上直接运行它们，补丁见 `toolchain/patches/maloader.patch`。
 
 ### 第三方库
 
@@ -56,15 +57,16 @@ Swerve 引擎核心和 OpenSSL 在原版里是预编译静态库。它们以汇�
 
 | 状态 | 函数 | 字节 | 字节占比 |
 | --- | ---: | ---: | ---: |
-| 一致（MATCH） | 7555 | 723,364 | 63.78% |
-| 等价（只差寄存器或指令顺序） | 30 | 5,024 | 0.44% |
-| 不一致 | 894 | 405,700 | 35.77% |
+| 一致（MATCH） | 7823 | 805,360 | 71.01% |
+| 等价（只差寄存器或指令顺序） | 17 | 1,944 | 0.17% |
+| 不一致 | 639 | 326,784 | 28.81% |
 
+- 不一致和等价共 656 个函数（328,728 字节）。状态页按原因列出 39 个（11.7 KB） 已证明等价或人工确认写法差，115 个（31.8 KB） 疑似噪声，153 个（122.1 KB） 有常量、条件、有无符号或调用目标差异的线索，349 个（155.4 KB） 未判定。
 - **全部函数都有实现**，整个游戏可以链接成 `zombsniper`，并已在越狱 iPad 上进入关卡试玩。
-- 整个程序（3,953,724 字节，含第三方库和预编译库）中有 44.70% 已逐字节一致。
+- 整个程序（3,953,724 字节，含第三方库和预编译库）中有 46.96% 已逐字节一致。
 - 整个文件尚未逐字节一致：除上面的不一致函数外，弱符号的排列顺序也与原版不同。
 
-“一致”的判定：屏蔽重定位后字节相同，并且每个引用（调用目标、字符串内容、GOT 导入、selector 等）都指向同一个东西。
+“一致”的判定：屏蔽重定位后字节相同，并且每个引用（调用目标、字符串内容、GOT 导入、selector 等）都指向同一个东西。函数尾部的对齐填充不计；但未链接目标文件里被重定位覆盖的尾部字节（文字池的值）不当填充裁掉。
 
 ## Rebuild
 
@@ -93,7 +95,7 @@ https://developer.apple.com/services-account/download?path=/Developer_Tools/xcod
 1. **准备环境**（只需做一次）：双击 `setup.bat`。如果 dmg 放在别处，在命令行中运行 `setup.bat <dmg 路径>`。脚本会：
    - 下载 Ubuntu 24.04 WSL 镜像并核对 SHA-256，导入为发行版 `ckz-build`（磁盘在 `.wsl\ckz-build\`）；
    - 安装编译依赖，按固定提交编译 maloader 并打补丁；
-   - 核对 dmg 的 SHA-256，解出需要的 Xcode 组件，最后用 maloader 试运行 clang 和 ld 做自检。
+   - 核对 dmg 的 SHA-256，解出需要的 Xcode 组件，最后用 maloader 试运行 clang、as 和 ld 做自检。
 2. **构建**：双击 `build.bat`。它会编译全部 607 个目标文件（首次约 15 秒，之后只重编改动过的文件），再链接出 `zombsniper`。想全部重新编译时，运行 `build.bat -B`。
 3. 产物在 `_output\zombsniper`，旁边还有 `zombsniper.sha256`、链接参数 `link.args` 和链接日志 `link.log`。
 

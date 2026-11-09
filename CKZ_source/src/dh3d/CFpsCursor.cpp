@@ -141,8 +141,8 @@ void CFPSCursor::UpdateImpl(int elapsedMs)
     factor = (factor < 0.0f) ? 0.0f : factor;
     factor = (1.0f < factor) ? 1.0f : factor;
     float gap = (1.0f - factor) * SIGHT_GAP_NO_ZOOM + factor * SIGHT_GAP_FULL_ZOOM;
+    int length = (int)gap;
     if (m_sightWindow != NULL) {
-        int length = (int)gap;
         m_sightWindow->m_length = length;
         int size = length * 2 + zoom * 2;
         m_sightWindow->SetDesiredHeight(size);
@@ -186,11 +186,12 @@ void CFPSCursor::ShowSight(bool show)
     if (m_sightWindow == NULL) {
         return;
     }
+    int visibleFlag = Window::FLAG_VISIBLE;
     if (show) {
-        m_sightWindow->SetFlags(1);
-        return;
+        m_sightWindow->SetFlags(visibleFlag);
+    } else {
+        m_sightWindow->ClearFlags(visibleFlag);
     }
-    m_sightWindow->ClearFlags(1);
 }
 
 void CFPSCursor::EnableSight(bool enable)

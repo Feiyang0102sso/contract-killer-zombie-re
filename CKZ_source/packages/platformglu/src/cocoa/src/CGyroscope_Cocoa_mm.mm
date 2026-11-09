@@ -19,11 +19,11 @@ CGyroscope_Cocoa* CGyroscope_Cocoa::Create()
 }
 
 CGyroscope_Cocoa::CGyroscope_Cocoa()
-    : m_lastSampleTime(0),
-      m_frequency(0),
-      m_attitude(0.0f, 0.0f, 0.0f),
-      m_motionManager(nil)
+    : m_attitude(0.0f, 0.0f, 0.0f)
 {
+    m_frequency = 0;
+    m_lastSampleTime = 0;
+    m_motionManager = nil;
     // CoreMotion may be missing on old firmware: look the class up by name
     m_motionManager = [[NSClassFromString(@"CMMotionManager") alloc] init];
     if (m_motionManager != nil && ![m_motionManager isGyroAvailable]) {

@@ -16,9 +16,9 @@ public:
     /** The application's instance, created on first use. */
     static inline SG_Home* GetInstance()
     {
-        SG_Home* found = NULL;
-        CApplet::m_pApp->m_singletons->Find(SingletonId, (void**)&found);
-        SG_Home* home = found;
+        void* found = NULL;
+        CApplet::m_pApp->m_singletons->Find(SingletonId, &found);
+        SG_Home* home = static_cast<SG_Home*>(found);
         if (home == NULL) {
             home = new SG_Home();
         }

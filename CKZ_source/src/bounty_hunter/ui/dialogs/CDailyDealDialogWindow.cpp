@@ -195,29 +195,17 @@ void CDailyDealDialogWindow::Update()
         COffersManager* offers = ((App*)WindowApp::m_instance)->m_offersManager;
         offers->m_offersChanged = true;
         offers->m_activeDealIndex = -1;
-    } else if (remaining >= 86400) {
-        const char* key = "IDS_SHOP_SALE_DAY";
-        if (remaining > 172799) {
-            key = "IDS_SHOP_SALE_DAYS";
-        }
-        XString time = XString::Format(L"%d %s", remaining / 86400, ResString(key).m_data);
-        TextWindow* timer = m_timer;
-        {
-            XString format = ResString("IDS_DAILY_DEAL_TIMEOUT");
-            XString text = XString::Format(format.m_data, time.m_data);
-            timer->SetText(text);
-        }
-        m_lastTime = now;
-        return;
     }
-    TimeValue unusedClock; // Original 149bfc real construction; Format is static but its clock side effect is still kept.
-    XString time = TimeValue::Format(remaining, true);
+    const char* key = "IDS_SHOP_SALE_DAY";
+    if (remaining > 172799) {
+        key = "IDS_SHOP_SALE_DAYS";
+    }
+    // Original 149bfc real construction; Format is static but its clock side effect is still kept.
+    XString time = remaining >= 86400
+        ? XString::Format(L"%d %s", remaining / 86400, ResString(key).m_data)
+        : TimeValue().Format(remaining, true);
     TextWindow* timer = m_timer;
-    {
-        XString format = ResString("IDS_DAILY_DEAL_TIMEOUT");
-        XString text = XString::Format(format.m_data, time.m_data);
-        timer->SetText(text);
-    }
+    timer->SetText(XString::Format(ResString("IDS_DAILY_DEAL_TIMEOUT").m_data, time.m_data));
     m_lastTime = now;
 }
 
@@ -228,7 +216,12 @@ void CDailyDealDialogWindow::OnClosed()
 
 void CDailyDealDialogWindow::OnCommand(Event& event)
 {
-    if (event.m_id == (int)0xf77a7e09) {
+    // b147: original lays out the cancel block first, so it is written first.
+    if (event.m_id == 0x0c9b0cea) {
+        XString id(m_offer->m_id);
+        int price = (int)((App*)WindowApp::m_instance)->m_offersManager->m_probabilityRandom;
+        CGameAnalytics::logDailyDealResult(id, price, (CGameAnalytics::EOTOResult)0);
+    } else if (event.m_id == (int)0xf77a7e09) {
         CZombieDialogWindow* conditionDialog;
         if (!m_item->CheckBuyConditions(&conditionDialog)) {
             if (conditionDialog != NULL) {
@@ -260,11 +253,6 @@ void CDailyDealDialogWindow::OnCommand(Event& event)
         dialog->InitIAP();
         m_parent->AddModal(dialog);
         return;
-    }
-    if (event.m_id == 0x0c9b0cea) {
-        XString id(m_offer->m_id);
-        int price = (int)((App*)WindowApp::m_instance)->m_offersManager->m_probabilityRandom;
-        CGameAnalytics::logDailyDealResult(id, price, (CGameAnalytics::EOTOResult)0);
     }
     CZombieDialogWindow::OnCommand(event);
 }

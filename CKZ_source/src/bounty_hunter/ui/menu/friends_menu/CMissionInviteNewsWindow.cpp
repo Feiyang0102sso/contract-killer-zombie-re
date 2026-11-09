@@ -44,7 +44,11 @@ CMissionInviteNewsWindow::CMissionInviteNewsWindow(const SMissionInviteMessage* 
 
 void CMissionInviteNewsWindow::OnCommand(Event& event)
 {
-    if ((unsigned int)event.m_id == 0x7d371742u || (unsigned int)event.m_id == 0x0d611fccu) {
+    // b147: original has two separate branches with the same body (partly tail-merged).
+    if ((unsigned int)event.m_id == 0x0d611fccu) {
+        ((App*)WindowApp::m_instance)->m_newsFeedManager->RemoveMessage(m_message);
+        Close();
+    } else if ((unsigned int)event.m_id == 0x7d371742u) {
         ((App*)WindowApp::m_instance)->m_newsFeedManager->RemoveMessage(m_message);
         Close();
     }

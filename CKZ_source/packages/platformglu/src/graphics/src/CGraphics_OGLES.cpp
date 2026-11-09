@@ -209,9 +209,7 @@ void InstrClearBuffers(void* context, unsigned char* instruction)
     unsigned char maskAlpha;
     graphics->m_rasterizerState->GetColorMaskState(maskRed, maskGreen, maskBlue, maskAlpha);
 
-    if (*table.GetEntryData(table.GetEntryIndex(L"ScissorTest")) == 0) {
-        state.EnableScissorTest(0);
-    } else {
+    if (*table.GetEntryData(table.GetEntryIndex(L"ScissorTest")) != 0) {
         int* scissor = (int*)table.GetEntryData(table.GetEntryIndex(L"Scissor"));
         int x = scissor[0];
         int y = scissor[1];
@@ -236,19 +234,33 @@ void InstrClearBuffers(void* context, unsigned char* instruction)
             transformed.m_height = 0;
             graphics->OrientationReinterpretationYFlipTransform(rectangle, transformed);
             state.EnableScissorTest(1);
-            if (transformed.m_width != 0 && transformed.m_height != 0) {
-                state.Scissor(transformed.m_x, transformed.m_y, transformed.m_width, transformed.m_height);
-            } else {
+            if (transformed.m_width == 0 || transformed.m_height == 0) {
                 state.Scissor(0, 0, 0, 0);
+            } else {
+                state.Scissor(transformed.m_x, transformed.m_y, transformed.m_width, transformed.m_height);
             }
         }
+    } else {
+        state.EnableScissorTest(0);
     }
 
-    GLbitfield clearMask = 0;
     unsigned int* flags = (unsigned int*)table.GetEntryData(table.GetEntryIndex(L"Flags"));
+    GLbitfield clearMask = 0;
     if ((*flags & ICGraphics::ClearFlag_Color) != 0) {
         GLfloat* color = (GLfloat*)table.GetEntryData(table.GetEntryIndex(L"Color"));
-        state.ClearColor(color[0], color[1], color[2], color[3]);
+        GLfloat red = color[0];
+        GLfloat green = color[1];
+        GLfloat blue = color[2];
+        GLfloat alpha = color[3];
+        if (state.m_clearColorDirty || state.m_clearColor[0] != red || state.m_clearColor[1] != green ||
+            state.m_clearColor[2] != blue || state.m_clearColor[3] != alpha) {
+            state.m_clearColorDirty = 0;
+            state.m_clearColor[0] = red;
+            state.m_clearColor[1] = green;
+            state.m_clearColor[2] = blue;
+            state.m_clearColor[3] = alpha;
+            glClearColor(color[0], color[1], color[2], color[3]);
+        }
         clearMask = GL_COLOR_BUFFER_BIT;
     }
     unsigned int colorMask = *(unsigned int*)table.GetEntryData(table.GetEntryIndex(L"ColorMask"));
@@ -257,12 +269,22 @@ void InstrClearBuffers(void* context, unsigned char* instruction)
     if ((*flags & ICGraphics::ClearFlag_Depth) != 0) {
         GLfloat* depth = (GLfloat*)table.GetEntryData(table.GetEntryIndex(L"Depth"));
         clearMask |= GL_DEPTH_BUFFER_BIT;
-        state.ClearDepth(*depth);
+        GLfloat value = *depth;
+        if (state.m_clearDepthDirty || state.m_clearDepth != value) {
+            state.m_clearDepthDirty = 0;
+            state.m_clearDepth = value;
+            glClearDepthf(*depth);
+        }
     }
     if ((*flags & ICGraphics::ClearFlag_Stencil) != 0) {
         GLint* stencil = (GLint*)table.GetEntryData(table.GetEntryIndex(L"Stencil"));
         clearMask |= GL_STENCIL_BUFFER_BIT;
-        state.ClearStencil(*stencil);
+        GLint value = *stencil;
+        if (state.m_clearStencilDirty || state.m_clearStencil != value) {
+            state.m_clearStencilDirty = 0;
+            state.m_clearStencil = value;
+            glClearStencil(*stencil);
+        }
     }
     if (*flags != 0) {
         state.DepthMask(1);
@@ -811,9 +833,7 @@ void CGraphics_OGLES::Begin(ICDisplayProgram& displayProgram, ICDisplayProgram::
     mode.m_configure(mode.m_context, *m_displayProgram);
 
     // target
-    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Target)] == OGLES_IgnoredLevel) {
-        m_targetLevel = NULL;
-    } else {
+    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Target)] != OGLES_IgnoredLevel) {
         program.SetCallBackInstructionExecution(
             program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Target)], this, InstrTarget);
         unsigned char** level =
@@ -825,27 +845,29 @@ void CGraphics_OGLES::Begin(ICDisplayProgram& displayProgram, ICDisplayProgram::
         // (the original stores the target level into the viewport instruction)
         m_viewportInstruction->m_header.m_level =
             (unsigned short)program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Target)];
+    } else {
+        m_targetLevel = NULL;
     }
 
     // clear buffers
-    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::ClearBuffers)] ==
+    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::ClearBuffers)] !=
         OGLES_IgnoredLevel) {
-        m_clearLevel = NULL;
-    } else {
         program.SetCallBackInstructionExecution(
             program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::ClearBuffers)], this,
             InstrClearBuffers);
         m_clearLevel = &program.m_levelInstructions[
             program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::ClearBuffers)]];
-        ((CDisplayProgram::Instruction::Header*)m_clearTable.GetTableHeader())->m_level =
+        CDisplayProgram::Instruction::Header* header =
+            (CDisplayProgram::Instruction::Header*)m_clearTable.GetTableHeader();
+        header->m_level =
             (unsigned short)program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::ClearBuffers)];
+    } else {
+        m_clearLevel = NULL;
     }
 
     // viewport
-    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Viewport)] ==
+    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Viewport)] !=
         OGLES_IgnoredLevel) {
-        m_viewportLevel = NULL;
-    } else {
         program.SetCallBackInstructionExecution(
             program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Viewport)], this,
             InstrViewport);
@@ -857,6 +879,8 @@ void CGraphics_OGLES::Begin(ICDisplayProgram& displayProgram, ICDisplayProgram::
         }
         m_viewportInstruction->m_header.m_level =
             (unsigned short)program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Viewport)];
+    } else {
+        m_viewportLevel = NULL;
     }
 
     // layer instructions do nothing when executed
@@ -871,10 +895,8 @@ void CGraphics_OGLES::Begin(ICDisplayProgram& displayProgram, ICDisplayProgram::
     }
 
     // shaders
-    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Shaders)] ==
+    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Shaders)] !=
         OGLES_IgnoredLevel) {
-        m_shadersLevel = NULL;
-    } else {
         SetCallBackInstructionExecutionShaders();
         unsigned char** level = &program.m_levelInstructions[
             program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Shaders)]];
@@ -884,13 +906,13 @@ void CGraphics_OGLES::Begin(ICDisplayProgram& displayProgram, ICDisplayProgram::
         }
         m_shadersInstruction->m_header.m_level =
             (unsigned short)program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Shaders)];
+    } else {
+        m_shadersLevel = NULL;
     }
 
     // textures
-    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Textures)] ==
+    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Textures)] !=
         OGLES_IgnoredLevel) {
-        m_texturesLevel = NULL;
-    } else {
         program.SetCallBackInstructionExecution(
             program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Textures)], this,
             InstrTexure);
@@ -904,6 +926,8 @@ void CGraphics_OGLES::Begin(ICDisplayProgram& displayProgram, ICDisplayProgram::
         textures->m_header.m_size = sizeof(CDisplayProgram::Instruction::Header) + sizeof(unsigned int);
         textures->m_header.m_level =
             (unsigned short)program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Textures)];
+    } else {
+        m_texturesLevel = NULL;
     }
 
     // rasterizer states
@@ -931,10 +955,8 @@ void CGraphics_OGLES::Begin(ICDisplayProgram& displayProgram, ICDisplayProgram::
     }
 
     // shader parameters
-    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::ShaderParams)] ==
+    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::ShaderParams)] !=
         OGLES_IgnoredLevel) {
-        m_shaderParamsLevel = NULL;
-    } else {
         program.SetCallBackInstructionExecution(
             program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::ShaderParams)], this,
             InstrShaderParams);
@@ -945,9 +967,13 @@ void CGraphics_OGLES::Begin(ICDisplayProgram& displayProgram, ICDisplayProgram::
             parameters = ((CShaderProgram_OGLES*)m_shaderProgram)->m_parameterTable;
         }
         if (m_shaderProgram != NULL && parameters != NULL) {
-            ((CDisplayProgram::Instruction::Header*)parameters->GetTableHeader())->m_level = (unsigned short)
+            CDisplayProgram::Instruction::Header* header =
+                (CDisplayProgram::Instruction::Header*)parameters->GetTableHeader();
+            header->m_level = (unsigned short)
                 program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::ShaderParams)];
         }
+    } else {
+        m_shaderParamsLevel = NULL;
     }
 
     // draws are the last level
@@ -958,70 +984,66 @@ void CGraphics_OGLES::Begin(ICDisplayProgram& displayProgram, ICDisplayProgram::
     CRasterizerState_v1* rasterizer = (CRasterizerState_v1*)m_rasterizerState;
     CDisplayProgram::Instruction::Header* header =
         (CDisplayProgram::Instruction::Header*)rasterizer->m_table.GetTableHeader();
-    unsigned int entry = 0;
-    while (true) {
-        header->m_level = (unsigned short)program.m_opcodeLevels[OGLES_OPCODE_INDEX(header->m_opcode)];
-        if (entry >= rasterizer->m_table.GetNumberOfEntries()) {
-            break;
-        }
+    header->m_level = (unsigned short)program.m_opcodeLevels[OGLES_OPCODE_INDEX(header->m_opcode)];
+    for (unsigned int entry = 0; entry < rasterizer->m_table.GetNumberOfEntries(); entry++) {
         header = (CDisplayProgram::Instruction::Header*)rasterizer->m_table.GetEntryHeader(entry);
-        entry++;
+        header->m_level = (unsigned short)program.m_opcodeLevels[OGLES_OPCODE_INDEX(header->m_opcode)];
     }
 
     // rasterizer state slots
-    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::BackfaceCulling)] ==
+    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::BackfaceCulling)] !=
         OGLES_IgnoredLevel) {
-        rasterizer->m_stateLevels[ICRasterizerState::State_BackfaceCulling] = NULL;
-    } else {
         unsigned char** level = &program.m_levelInstructions[
             program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::BackfaceCulling)]];
         rasterizer->m_stateLevels[ICRasterizerState::State_BackfaceCulling] = level;
         if (!keepState && ((CDisplayProgram::Instruction::Header*)*level)->m_size == OGLES_LevelNodeSize) {
             *level = rasterizer->m_table.GetEntryHeader(rasterizer->m_backfaceCullingIndex);
         }
-    }
-    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Blending)] ==
-        OGLES_IgnoredLevel) {
-        rasterizer->m_stateLevels[ICRasterizerState::State_Blending] = NULL;
     } else {
+        rasterizer->m_stateLevels[ICRasterizerState::State_BackfaceCulling] = NULL;
+    }
+    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Blending)] !=
+        OGLES_IgnoredLevel) {
         unsigned char** level = &program.m_levelInstructions[
             program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Blending)]];
         rasterizer->m_stateLevels[ICRasterizerState::State_Blending] = level;
         if (!keepState && ((CDisplayProgram::Instruction::Header*)*level)->m_size == OGLES_LevelNodeSize) {
             *level = rasterizer->m_table.GetEntryHeader(rasterizer->m_blendingIndex);
         }
-    }
-    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::ColorMask)] ==
-        OGLES_IgnoredLevel) {
-        rasterizer->m_stateLevels[ICRasterizerState::State_ColorMask] = NULL;
     } else {
+        rasterizer->m_stateLevels[ICRasterizerState::State_Blending] = NULL;
+    }
+    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::ColorMask)] !=
+        OGLES_IgnoredLevel) {
         unsigned char** level = &program.m_levelInstructions[
             program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::ColorMask)]];
         rasterizer->m_stateLevels[ICRasterizerState::State_ColorMask] = level;
         if (!keepState && ((CDisplayProgram::Instruction::Header*)*level)->m_size == OGLES_LevelNodeSize) {
             *level = rasterizer->m_table.GetEntryHeader(rasterizer->m_colorMaskIndex);
         }
-    }
-    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Depth)] == OGLES_IgnoredLevel) {
-        rasterizer->m_stateLevels[ICRasterizerState::State_Depth] = NULL;
     } else {
+        rasterizer->m_stateLevels[ICRasterizerState::State_ColorMask] = NULL;
+    }
+    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Depth)] != OGLES_IgnoredLevel) {
         unsigned char** level = &program.m_levelInstructions[
             program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Depth)]];
         rasterizer->m_stateLevels[ICRasterizerState::State_Depth] = level;
         if (!keepState && ((CDisplayProgram::Instruction::Header*)*level)->m_size == OGLES_LevelNodeSize) {
             *level = rasterizer->m_table.GetEntryHeader(rasterizer->m_depthIndex);
         }
-    }
-    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Scissor)] ==
-        OGLES_IgnoredLevel) {
-        rasterizer->m_stateLevels[ICRasterizerState::State_Scissor] = NULL;
     } else {
+        rasterizer->m_stateLevels[ICRasterizerState::State_Depth] = NULL;
+    }
+    if (program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Scissor)] !=
+        OGLES_IgnoredLevel) {
         unsigned char** level = &program.m_levelInstructions[
             program.m_opcodeLevels[OGLES_OPCODE_INDEX(CDisplayProgram::Instruction::Opcode::Scissor)]];
         rasterizer->m_stateLevels[ICRasterizerState::State_Scissor] = level;
         if (!keepState && ((CDisplayProgram::Instruction::Header*)*level)->m_size == OGLES_LevelNodeSize) {
             *level = rasterizer->m_table.GetEntryHeader(rasterizer->m_scissorIndex);
         }
+    } else {
+        rasterizer->m_stateLevels[ICRasterizerState::State_Scissor] = NULL;
     }
 
     program.m_nodeChunks.m_current = program.m_nodeChunks.m_head;

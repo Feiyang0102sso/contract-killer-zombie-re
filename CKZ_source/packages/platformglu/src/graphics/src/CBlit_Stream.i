@@ -37,6 +37,9 @@
                 BLIT_STREAM_STORE(destination + (line * op.m_destinationPitch + column * BLIT_DESTINATION_BYTES));
             }
         }
-        op.m_stream->Skip(op.m_rowSkip);
+        // b147: the row padding is read into a local first; the original keeps the op.m_stream load
+        // inside the pixel loop instead of sharing it with this Skip call
+        unsigned int rowSkip = op.m_rowSkip;
+        op.m_stream->Skip(rowSkip);
     }
 }

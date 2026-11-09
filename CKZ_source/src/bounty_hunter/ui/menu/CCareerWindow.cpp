@@ -106,7 +106,7 @@ void CCareerWindow::Paint(com::glu::platform::graphics::ICGraphics2d& graphics)
     int height = m_height;
     int contentHeight = m_content->m_height;
     int shift = BACKGROUND_SHIFT();
-    DrawTileImageHoriz(graphics, image, 0, height - shift - contentHeight, m_width);
+    DrawTileImageHoriz(graphics, image, 0, height - contentHeight - shift, m_width);
 }
 
 void CCareerWindow::OnCommand(Event&)
@@ -175,10 +175,8 @@ void SimpleGreyProgressBar::Paint(com::glu::platform::graphics::ICGraphics2d& gr
         DrawImage(graphics, m_left.GetSurface(), 0, 0, 0, 0);
     }
     int leftWidth = ImageWidth(m_left.GetSurface());
-    float fillWidth = (float)(m_width - leftWidth * 2) * m_percent;
-    com::glu::platform::graphics::ICRenderSurface* image = m_center.GetSurface();
-    int fillPixels = (int)fillWidth;
-    DrawTileImageHoriz(graphics, image, leftWidth, 0, fillPixels);
+    int fillPixels = (int)((float)(m_width - leftWidth * 2) * m_percent);
+    DrawTileImageHoriz(graphics, m_center.GetSurface(), leftWidth, 0, fillPixels);
     if (m_percent > 0.0f) {
         DrawImage(graphics, m_right.GetSurface(), fillPixels + leftWidth, 0, 0, 0);
     }

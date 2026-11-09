@@ -384,11 +384,11 @@ void CBrawlExecutor::OnFinish(EExecutorResult)
         }
         --victim->GetBrawlInfo()->m_elapsed;
     }
-    EBrawlRole role = BRAWL_ROLE_NONE;
-    if (owner->m_hp < 1) {
-        role = (EBrawlRole)11;
+    if (owner->m_hp >= 1) {
+        owner->ChangeBrawlRole(BRAWL_ROLE_NONE, NULL);
+    } else {
+        owner->ChangeBrawlRole((EBrawlRole)11, NULL);
     }
-    owner->ChangeBrawlRole(role, NULL);
     owner->GetBrawlInfo()->m_executor = NULL;
 }
 

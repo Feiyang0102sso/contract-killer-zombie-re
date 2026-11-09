@@ -22,8 +22,9 @@ void CHumanLogicExecutor::OnDeath()
 void CHumanLogicExecutor::RegisterAsDead()
 {
     if (m_mind != NULL) {
-        EHitType hit;
-        m_mind->m_owner->GetPickInfo(&hit);
+        EHitType pickedHit;
+        m_mind->m_owner->GetPickInfo(&pickedHit);
+        EHitType hit = pickedHit;
         int experience = CProgressSystem::CalcXpForKilledUnit(m_mind->m_owner);
         ((App*)WindowApp::m_instance)->m_progressSystem->RegisterGameEvent(
             CProgressSystem::EVENT_ENEMY_KILLED, experience, hit == HIT_HEAD);

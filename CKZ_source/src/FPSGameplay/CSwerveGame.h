@@ -43,6 +43,23 @@ class CDH_Animation;
 class CLoadingScreen;
 class CUnitInfoScreen;
 class TextWindow;
+/** One easing run (24 bytes): curve, start/end values, duration in ms and elapsed time.
+ *  b147: a sub-object in the original; the C2 clears time before duration for each of the three runs. */
+struct SEaseRun {
+    SEaseRun()
+    {
+        m_time = 0.0f;
+        m_duration = 0;
+    }
+
+    EasyLib::EMethod m_method;
+    float m_begin;
+    float m_end;
+    int m_duration;
+    float m_time;
+    int m_field14;
+};
+
 class CSwerveGame : public Window {
 public:
     typedef swerve::Group<CSwerveAssertingErrorHandler> Group;
@@ -257,24 +274,9 @@ public:
     int m_field51c;
     swerve::Background<CSwerveAssertingErrorHandler> m_background; // 520
     int m_transition; // 524
-    EasyLib::EMethod m_transitionMethod;
-    float m_transitionBegin;
-    float m_transitionEnd;
-    int m_transitionDuration;
-    float m_transitionTime;
-    int m_field53c;
-    EasyLib::EMethod m_blurMethod; // 540
-    float m_blurBegin;
-    float m_blurEnd;
-    int m_blurDuration;
-    float m_blurTime;
-    int m_field554;
-    EasyLib::EMethod m_fovMethod; // 558
-    float m_fovBegin;
-    float m_fovEnd;
-    int m_fovDuration;
-    float m_fovTime;
-    int m_field56c;
+    SEaseRun m_transitionRun; // 528
+    SEaseRun m_blurRun; // 540
+    SEaseRun m_fovRun; // 558
     float m_savedFov; // 570
     bool m_fovBlur;
     bool m_resetFovBlur;
@@ -319,10 +321,10 @@ public:
     swerve::Camera<CSwerveAssertingErrorHandler> m_referenceNode; // 6c4, original fe4b0 already did Query5, later calls go directly to the camera
     Transform m_referenceTransform;
     Transform m_lightTransform;
-    vec3 m_cameraRight; // 6d0
-    vec3 m_cameraUp;
-    vec3 m_cameraForward;
-    vec3 m_cameraPosition;
+    // 6d0: right, up, forward, position. b147: an array in the original (the C2 default-constructs it
+    // with a 4-iteration z/y/x store loop instead of one merged memset).
+    enum { CAMERA_RIGHT = 0, CAMERA_UP = 1, CAMERA_FORWARD = 2, CAMERA_POSITION = 3 };
+    vec3 m_cameraVectors[4];
     float m_field700; // 700, original dirty starts at 704
     bool m_cameraDirty; // 704
     int m_cameraSampleCount; // 708

@@ -226,25 +226,25 @@ int CAppExecutor::InitRegistry()
 void CAppExecutor::ReleaseRegistry()
 {
     CRegistry* registry = m_registry;
+    CSystemElement* element = NULL;
     CRegistryItr iterator(*registry);
     while (!iterator.IsDone()) {
-        CSystemElement* element = &*iterator;
-        core::CClass* object = static_cast<core::CClass*>(element->GetObject());
+        CSystemElement* current = &*iterator;
+        core::CClass* object = static_cast<core::CClass*>(current->GetObject());
         if (object->m_classId == CEvent::ClassId || object->m_classId == CMessage::ClassId) {
             delete object;
-            CSystemElement* next = element->m_next;
-            registry->Remove(*element);
+            CSystemElement* next = current->m_next;
+            registry->Remove(*current);
             if (next == NULL) {
-                next = element;
+                next = current;
             }
-            delete element;
+            delete current;
             iterator.m_current = next;
         }
         else {
             iterator++;
         }
     }
-    CSystemElement* element = NULL;
     if (registry->Query(0, 0xc84e9c27, &element)) {
         registry->Remove(*element);
         delete static_cast<core::CClass*>(element->GetObject());
@@ -530,8 +530,10 @@ void CGameApp::CreatePools() const
 
 void CGameApp::DestroyPools() const
 {
-    delete CMessagePool::GetInstance();
-    delete CEventPool::GetInstance();
+    CMessagePool* messages = CMessagePool::GetInstance();
+    delete messages;
+    CEventPool* events = CEventPool::GetInstance();
+    delete events;
 }
 
 int CGameApp::InitRegistry()

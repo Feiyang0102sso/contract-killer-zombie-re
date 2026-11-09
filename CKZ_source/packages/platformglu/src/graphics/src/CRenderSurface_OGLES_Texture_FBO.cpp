@@ -83,7 +83,7 @@ unsigned char CRenderSurface_OGLES_Texture_FBO::InitializeFrameBuffer()
         glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES, GL_RENDERBUFFER_OES,
                                      m_depthRenderbuffer);
     }
-    GLenum status = glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES);
+    unsigned char complete = glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES) == GL_FRAMEBUFFER_COMPLETE_OES;
     // restore the binding of the current target
     CGraphics* graphics = (CGraphics*)ICGraphics::GetInstance();
     if (m_targetType == ((CRenderSurface_OGLES_Texture_FBO*)graphics->m_targetSurface)->m_targetType) {
@@ -91,7 +91,7 @@ unsigned char CRenderSurface_OGLES_Texture_FBO::InitializeFrameBuffer()
     } else {
         glBindFramebufferOES(GL_FRAMEBUFFER_OES, 0);
     }
-    return status == GL_FRAMEBUFFER_COMPLETE_OES;
+    return complete;
 }
 
 void CRenderSurface_OGLES_Texture_FBO::BindFrameBuffer()

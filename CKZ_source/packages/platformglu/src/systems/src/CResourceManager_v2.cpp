@@ -24,9 +24,9 @@
 namespace com { namespace glu { namespace platform { namespace systems {
 
 /** Event ids switching the resource debug output (argument 0: new value). */
-// which id drives which flag is fixed by ResourceDebug_HandleEvent: 0x692a09e5 sets m_dbgLoggingEnabled
-static const unsigned int kEventResourceDebugLogging = 0x692a09e5;
-static const unsigned int kEventResourceDebugVerboseLogging = 0x826aaddc;
+// which id drives which flag is fixed by ResourceDebug_HandleEvent: 0x692a09e5 sets m_dbgVerboseLoggingEnabled
+static const unsigned int kEventResourceDebugLogging = 0x826aaddc;
+static const unsigned int kEventResourceDebugVerboseLogging = 0x692a09e5;
 
 /** Mime types of string resources (UTF-8 / raw wide characters). */
 static const unsigned int kMimeTypeStringUtf8 = 0xf686aadc;
@@ -282,14 +282,18 @@ unsigned char CResourceManager_v2::Initialize(unsigned long tableSize, unsigned 
     m_router = router;
     router->m_keyToNameContext = this;
     router->m_keyToName = CResourceManager_Handler_KeyToName;
-    m_router->m_keyToPointerContext = this;
-    m_router->m_keyToPointer = CResourceManager_Handler_KeyToPointer;
-    m_router->m_keyToInputStreamContext = this;
-    m_router->m_keyToInputStream = CResourceManager_Handler_KeyToInputStream;
-    m_router->m_nameToPointerContext = this;
-    m_router->m_nameToPointer = CResourceManager_Handler_NameToPointer;
-    m_router->m_nameToInputStreamContext = this;
-    m_router->m_nameToInputStream = CResourceManager_Handler_NameToInputStream;
+    router = m_router;
+    router->m_keyToPointerContext = this;
+    router->m_keyToPointer = CResourceManager_Handler_KeyToPointer;
+    router = m_router;
+    router->m_keyToInputStreamContext = this;
+    router->m_keyToInputStream = CResourceManager_Handler_KeyToInputStream;
+    router = m_router;
+    router->m_nameToPointerContext = this;
+    router->m_nameToPointer = CResourceManager_Handler_NameToPointer;
+    router = m_router;
+    router->m_nameToInputStreamContext = this;
+    router->m_nameToInputStream = CResourceManager_Handler_NameToInputStream;
 
     CEventListener* listener = new CEventListener();
     m_debugListener = listener;
@@ -297,8 +301,8 @@ unsigned char CResourceManager_v2::Initialize(unsigned long tableSize, unsigned 
     listener->m_object = this;
     listener->m_handle = handle;
     listener->m_callback = ResourceDebug_HandleEvent;
-    m_debugListener->Register(kEventResourceDebugVerboseLogging, core::CPriorityClass::DefaultPriority);
     m_debugListener->Register(kEventResourceDebugLogging, core::CPriorityClass::DefaultPriority);
+    m_debugListener->Register(kEventResourceDebugVerboseLogging, core::CPriorityClass::DefaultPriority);
 
     m_reserved124 = 0;
     m_substituteResourceInfo = 0;
@@ -413,7 +417,10 @@ unsigned char CResourceManager_v2::RemoveResource(const char* name)
     // find the resource called `name` in the chain of its handle
     int index = 0;
     CResource* previous;
-    while (resource != NULL) {
+    for (;;) {
+        if (resource == NULL) {
+            return 0;
+        }
         if (resource->m_name == NULL) {
             continue;
         }
@@ -423,9 +430,6 @@ unsigned char CResourceManager_v2::RemoveResource(const char* name)
         index++;
         previous = resource;
         resource = resource->m_nextSameHandle;
-    }
-    if (resource == NULL) {
-        return 0;
     }
 
     if (resource->m_classId == CResourceBigFile::ClassId) {
@@ -437,7 +441,8 @@ unsigned char CResourceManager_v2::RemoveResource(const char* name)
             wchar_t wideName[0x100];
             mbstowcs(wideName, resource->m_name, strlen(resource->m_name) + 1);
             if (wcscmp(wideName, entry->m_name.m_string) == 0) {
-                for (int bucket = 0; bucket < m_resources.m_bucketCount; bucket++) {
+                int bucketCount = m_resources.m_bucketCount;
+                for (int bucket = 0; bucket < bucketCount; bucket++) {
                     for (components::CHash::Entry* node = m_resources.m_buckets[bucket]; node != NULL;) {
                         CResource* chain = (CResource*)node->m_value;
                         node = node->m_next;
@@ -522,7 +527,8 @@ unsigned char CResourceManager_v2::RemoveResource(CResource& resource)
             wchar_t wideName[0x100];
             mbstowcs(wideName, resource.m_name, strlen(resource.m_name) + 1);
             if (wcscmp(wideName, entry->m_name.m_string) == 0) {
-                for (int bucket = 0; bucket < m_resources.m_bucketCount; bucket++) {
+                int bucketCount = m_resources.m_bucketCount;
+                for (int bucket = 0; bucket < bucketCount; bucket++) {
                     for (components::CHash::Entry* node = m_resources.m_buckets[bucket]; node != NULL;) {
                         CResource* chain = (CResource*)node->m_value;
                         node = node->m_next;
@@ -877,7 +883,8 @@ unsigned char CResourceManager_v2::DestroyResources()
     }
 
     // every resource chain of the hash
-    for (int bucket = 0; bucket < m_resources.m_bucketCount; bucket++) {
+    int bucketCount = m_resources.m_bucketCount;
+    for (int bucket = 0; bucket < bucketCount; bucket++) {
         for (components::CHash::Entry* node = m_resources.m_buckets[bucket]; node != NULL;) {
             CResource* chain = (CResource*)node->m_value;
             node = node->m_next;

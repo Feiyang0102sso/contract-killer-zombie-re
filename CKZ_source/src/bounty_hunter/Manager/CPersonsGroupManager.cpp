@@ -28,11 +28,12 @@ void CPersonsGroupManager::Parse(TiXmlNode* node)
         if (delay.ByteSize() != 0) {
             Vector<XString> limits;
             DGHelper::SplitStringAndTrim(limits, delay, XString("-"));
-            group.m_minDelayMs = limits[0].ToInt();
-            group.m_maxDelayMs = group.m_minDelayMs;
+            int delayMs = limits[0].ToInt();
+            group.m_minDelayMs = delayMs;
             if (limits.size() > 1) {
-                group.m_maxDelayMs = limits[1].ToInt();
+                delayMs = limits[1].ToInt();
             }
+            group.m_maxDelayMs = delayMs;
         }
         for (TiXmlNode* setNode = child->FirstChild("persons_set"); setNode != NULL; setNode = setNode->NextSibling("persons_set")) {
             SPersonsSet set;
@@ -49,11 +50,12 @@ void CPersonsGroupManager::Parse(TiXmlNode* node)
                 XString count = CXmlHelper::GetAttributeValue(setNode, "count");
                 Vector<XString> limits;
                 DGHelper::SplitStringAndTrim(limits, count, XString("-"));
-                set.m_minCount = limits[0].ToInt();
-                set.m_maxCount = set.m_minCount;
+                int countValue = limits[0].ToInt();
+                set.m_minCount = countValue;
                 if (limits.size() > 1) {
-                    set.m_maxCount = limits[1].ToInt();
+                    countValue = limits[1].ToInt();
                 }
+                set.m_maxCount = countValue;
             }
             group.m_sets.addElement(set);
         }

@@ -93,10 +93,9 @@ int CBH_ProgressBar::GetFillWidth()
     return width - desc - left - right;
 }
 
-CBH_ProgressBar::CBH_ProgressBar(int color, int width, int secondColor) : CBH_Button(), m_text()
+CBH_ProgressBar::CBH_ProgressBar(int color, int width, int secondColor)
+    : CBH_Button(), m_delta(0.0f), m_percent(0.0f), m_text()
 {
-    m_delta = 0.0f;
-    m_percent = 0.0f;
     m_leftName = "";
     m_rightName = "";
     m_fillName = "";
@@ -104,10 +103,11 @@ CBH_ProgressBar::CBH_ProgressBar(int color, int width, int secondColor) : CBH_Bu
     m_displayFormat = 0;
     m_showText = true;
     m_colorName = COLOR_IMAGES[color];
-    m_secondColorName = NULL;
+    const char* secondColorName = NULL;
     if (secondColor >= 0) {
-        m_secondColorName = COLOR_IMAGES[secondColor];
+        secondColorName = COLOR_IMAGES[secondColor];
     }
+    m_secondColorName = secondColorName;
     CreateImpl(width);
 }
 
@@ -140,10 +140,11 @@ CBH_ProgressBar::~CBH_ProgressBar()
 void CBH_ProgressBar::SetTextAlign(TextAlign align)
 {
     m_textAlign = align;
-    if (align == TEXT_LEFT) {
-        m_textX = ImageWidth(m_desc);
+    // b147: original block order is center, outside, left (reverse of the old chain).
+    if (align == TEXT_CENTER) {
+        m_textX = m_width / 2;
         m_textY = m_height / 2;
-        m_fontAlign = 1;
+        m_fontAlign = 0x24;
     } else if (align == TEXT_OUTSIDE) {
         int fillWidth = GetFillWidth();
         m_textX = fillWidth + ImageWidth(m_right);
@@ -154,10 +155,10 @@ void CBH_ProgressBar::SetTextAlign(TextAlign align)
         m_textX += offset;
         m_textY = m_height / 2;
         m_fontAlign = 0x22;
-    } else if (align == TEXT_CENTER) {
-        m_textX = m_width / 2;
+    } else if (align == TEXT_LEFT) {
+        m_textX = ImageWidth(m_desc);
         m_textY = m_height / 2;
-        m_fontAlign = 0x24;
+        m_fontAlign = 1;
     }
 }
 
@@ -216,10 +217,11 @@ void CBH_ProgressBar::UpdateBarParams()
         m_text.Assign(*XString::pEmpty);
     }
     if ((m_barFlags & 0x20) == 0) {
-        if (m_maximum < 1) {
-            m_percent = 0.0f;
-        } else {
+        // b147: original lays out the divide branch first.
+        if (m_maximum > 0) {
             m_percent = (m_value * 100) / m_maximum;
+        } else {
+            m_percent = 0.0f;
         }
     }
 }

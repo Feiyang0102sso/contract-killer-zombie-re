@@ -29,16 +29,19 @@ static const unsigned int CLEAR_ALL_BUFFERS = 0x70000;
 CAppConfig* CApp_CreateDefaultConfig()
 {
     graphics::ICGraphics::InitParam graphicsParams[1] = { { 0, 0 } };
-    unsigned char flag30;   // passed on uninitialized, as in the original
-    components::CStrWChar propertiesFile;
-    propertiesFile = PROPERTIES_FILE;
+    struct DefaultProperties {
+        components::CStrWChar file;
+        unsigned char flag30;   // passed on uninitialized, as in the original
+    } properties;
+    properties.file = PROPERTIES_FILE;
     components::CStrWChar resourceFile;
     components::CStrChar appName(APP_GLU_NAME_STR);
     resourceFile = (appName + ".big").GetCharPtr();
 
     CAppConfig* config = new CAppConfig();
     // graphics mode 5, mono 16-bit 8 kHz audio, 10584-byte buffer, 15 sounds, hardware mixing
-    config->Copy(5, graphicsParams, 1, 16, 8000, 10584, 15, 0, propertiesFile, flag30, resourceFile);
+    config->Copy(5, graphicsParams, 1, 16, 8000, 10584, 15, 0,
+                 properties.file, properties.flag30, resourceFile);
     return config;
 }
 

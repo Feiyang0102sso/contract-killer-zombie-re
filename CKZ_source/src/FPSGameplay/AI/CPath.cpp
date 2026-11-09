@@ -23,11 +23,10 @@ bool CPath::AddPointInRadius(const vec3& position, int pointId, float edgeDistan
     float sine;
     float cosine;
     MathLib::SinCos(angleRandom * 360.0f, sine, cosine);
+    float radialDistance = radialRandom * radius;
     if (m_pointCount > 255) {
         return false;
     }
-
-    float radialDistance = radialRandom * radius;
     m_points[m_pointCount].m_position = position + vec3(radialDistance * cosine, radialDistance * sine, 0.0f);
     m_points[m_pointCount].m_pointId = pointId;
     m_points[m_pointCount].m_edgeDistance = edgeDistance;

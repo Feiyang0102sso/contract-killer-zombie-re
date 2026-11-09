@@ -41,9 +41,7 @@ int CXmlHelper::GetIntAttributeValueOrUseDefault(const TiXmlNode* node, const ch
     if (value == NULL) {
         return defaultValue;
     }
-    XString source(value);
-    XString replaced = source.Replace(L"\\n", L"\n", true);
-    return replaced.ToInt();
+    return XString(value).Replace(L"\\n", L"\n", true).ToInt();
 }
 
 bool CXmlHelper::GetBoolAttributeValueOrUseDefault(const TiXmlNode* node, const char* name, bool defaultValue)
@@ -55,9 +53,7 @@ bool CXmlHelper::GetBoolAttributeValueOrUseDefault(const TiXmlNode* node, const 
     if (value == NULL) {
         return defaultValue;
     }
-    XString source(value);
-    XString replaced = source.Replace(L"\\n", L"\n", true);
-    return replaced.ToBool();
+    return XString(value).Replace(L"\\n", L"\n", true).ToBool();
 }
 
 TiXmlElement* CXmlHelper::ObtainElement(TiXmlElement* parent, const XString& name)

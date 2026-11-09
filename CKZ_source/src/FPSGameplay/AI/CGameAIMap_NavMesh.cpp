@@ -191,12 +191,12 @@ bool CGameAIMap_NavMesh::SyncLocation(Location& location, const vec3& position) 
     }
     int nearest = FindNearestCell(position);
     location.m_pointId = nearest;
-    if (nearest == -1) {
-        location.m_map = NULL;
-    } else {
+    if (nearest != -1) {
         location.m_map = const_cast<CGameAIMap_NavMesh*>(this);
+        return true;
     }
-    return nearest != -1;
+    location.m_map = NULL;
+    return false;
 }
 
 static void AddCellBorders(CGameAIMap_NavMesh::SCellAI* cell, ObstaclesContainer& obstacles)
@@ -351,7 +351,8 @@ void CGameAIMap_NavMesh::RenderMap(CAuxRender* render, int mode)
         for (int index = 0; index < m_cells.size(); index++) {
             RenderCellInformation(m_cells[index]);
         }
-    } else if (mode == 2) {
+    }
+    if (mode == 2) {
         for (int index = 0; index < m_cells.size(); index++) {
             SCellAI& cell = m_cells[index];
             if (cell.m_parent != NULL) {
@@ -808,7 +809,10 @@ void CGameAIMap_NavMesh::BindPointToCell(bool project)
 bool CGameAIMap_NavMesh::FindAnotherPoint(int* pointId, int previousPointId) const
 {
     int count = m_specialPoints.size();
-    if (count < 2 || previousPointId < 0 || previousPointId >= count) {
+    if (count < 2) {
+        return false;
+    }
+    if (previousPointId < 0 || previousPointId >= count) {
         return false;
     }
     int attempts = 0;
@@ -1050,10 +1054,10 @@ void CGameAIMap_NavMesh::OpenCellListPushBack(SCellAI* point, SCellAI* end, SCel
 
 CGameAIMap_NavMesh::SCellAI* CGameAIMap_NavMesh::OpenCellListPop()
 {
+    int bestIndex = 0;
     SCellAI* bestPoint = NULL;
     int count = m_openList.m_size;
     if (count > 0) {
-        int bestIndex = 0;
         bestPoint = m_openList.m_data[0];
         if (count >= 2) {
             float bestCost = bestPoint->m_pathDistance + bestPoint->m_heuristicDistance;

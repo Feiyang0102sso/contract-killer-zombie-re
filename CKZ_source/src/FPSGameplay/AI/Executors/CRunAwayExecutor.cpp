@@ -13,8 +13,9 @@ void CRunAwayExecutor::OnStart()
     CUnit* unit = m_mind->m_owner;
     vec3 delta = unit->m_body.m_position - unit->m_body.m_attackSource;
     float inverseLength = MathLib::InvSqrt(delta.LengthSqr());
+    CUnit* owner = m_mind->m_owner;
     vec3 position = unit->m_body.m_position + (delta * inverseLength) * 4.0f;
-    m_mind->m_owner->SetTarget(position);
+    owner->SetTarget(position);
     AddUnitTargetAttractorMovementExecutor(m_mind, CUnitBody::UNIT_BODY_RADIUS);
 }
 void AddRunAwayExecutor(CUnitMind* mind)

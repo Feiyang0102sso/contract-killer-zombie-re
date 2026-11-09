@@ -16,10 +16,10 @@ void* CGraphics_OGLES_EAGL_CreateContext(void* layer, unsigned int api, NSString
                                     colorFormat, kEAGLDrawablePropertyColorFormat,
                                     nil];
 
-    if (api == 2) {
-        context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-    } else if (api == 1) {
+    if (api == 1) {
         context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
+    } else if (api == 2) {
+        context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
     }
     return context;
 }

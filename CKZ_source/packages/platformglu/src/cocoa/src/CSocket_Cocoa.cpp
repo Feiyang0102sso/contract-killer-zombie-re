@@ -324,12 +324,9 @@ void CSocket_Cocoa::OnCFStreamConnectFinished()
 
 void CSocket_Cocoa::OnConnect()
 {
-    int error = Error_None;
-    int nextState = State_Finishing;
-
     int socketHandle = m_socket;
     if (socketHandle == -1) {
-        error = Error_NotConnected;
+        m_error = Error_NotConnected;
     } else {
         fd_set readSet;
         fd_set writeSet;
@@ -350,26 +347,24 @@ void CSocket_Cocoa::OnConnect()
                 // Connected
                 if (m_secure) {
                     SetupSsl();
-                    nextState = State_SslConnecting;
+                    m_state = State_SslConnecting;
+                    return;
                 }
             } else {
                 int socketError = 0;
                 socklen_t socketErrorLength = sizeof(socketError);
                 getsockopt(m_socket, SOL_SOCKET, SO_ERROR, &socketError, &socketErrorLength);
-                error = Error_Connect;
+                m_error = Error_Connect;
             }
         } else if (result == 0) {
             // Still connecting
             return;
         } else if (result == -1) {
-            error = Error_Connect;
+            m_error = Error_Connect;
         }
     }
 
-    if (error != Error_None) {
-        m_error = error;
-    }
-    m_state = nextState;
+    m_state = State_Finishing;
 }
 
 void CSocket_Cocoa::OnSend()
@@ -547,8 +542,9 @@ int CSocket_Cocoa::SetupSsl()
         m_sslContext = SSL_CTX_new(SSLv23_client_method());
         if (m_sslContext != NULL) {
             m_ssl = SSL_new(m_sslContext);
-            if (m_ssl != NULL && SSL_set_fd(m_ssl, m_socket) == 1) {
-                result = Error_None;
+            if (m_ssl != NULL) {
+                int status = SSL_set_fd(m_ssl, m_socket);
+                result = status == 1 ? Error_None : Error_Connect;
             }
         }
     }

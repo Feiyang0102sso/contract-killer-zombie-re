@@ -35,20 +35,19 @@ public:
     static inline ICGraphicsAbstractionManager* GetInstance()
     {
         framework::CApp* app = CApplet::m_pApp;
-        ICGraphicsAbstractionManager* instance = NULL;
-        if (app != NULL) {
-            if (app->m_graphicsAbstractionManager == NULL) {
-                ICGraphicsAbstractionManager* found = NULL;
-                app->m_singletons->Find(SingletonId, (void**)&found);
-                ICGraphicsAbstractionManager* created = found;
-                if (created == NULL) {
-                    created = CreateInstance();
-                }
-                app->m_graphicsAbstractionManager = created;
-            }
-            instance = (ICGraphicsAbstractionManager*)app->m_graphicsAbstractionManager;
+        if (app == NULL) {
+            return NULL;
         }
-        return instance;
+        if (app->m_graphicsAbstractionManager == NULL) {
+            ICGraphicsAbstractionManager* found = NULL;
+            app->m_singletons->Find(SingletonId, (void**)&found);
+            ICGraphicsAbstractionManager* created = found;
+            if (created == NULL) {
+                created = CreateInstance();
+            }
+            app->m_graphicsAbstractionManager = created;
+        }
+        return (ICGraphicsAbstractionManager*)app->m_graphicsAbstractionManager;
     }
 
     /** Make `abstraction` the current one of `manager`; 0 when that abstraction has no device. */

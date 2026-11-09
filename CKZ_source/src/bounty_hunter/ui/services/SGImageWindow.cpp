@@ -123,7 +123,7 @@ void SGImageWindow::OnCommand(Event& event)
 {
     if ((unsigned int)event.m_id == m_blinkCommand) {
         m_blinking = event.m_param1 != 0;
-        if (event.m_param1 == 0) {
+        if (!m_blinking) { // b147: original tests the stored flag (reuses the param compare)
             SetOpacity(1.0f);
         }
     }
@@ -156,7 +156,11 @@ void SGImageWindowCommand::OnPointerEvent(Event& event)
             }
         }
     }
-    if (event.m_type == Event::POINTER_PRESSED) {
+    // b147: original block order is dragged, pressed, released.
+    if (event.m_type == Event::POINTER_DRAGGED) {
+        m_pressed = hit;
+        event.Clear();
+    } else if (event.m_type == Event::POINTER_PRESSED) {
         m_pressed = true;
         m_pressGlobalX = m_parent->LocalToGlobalX(m_x);
         m_pressGlobalY = m_parent->LocalToGlobalX(m_y);
@@ -172,9 +176,6 @@ void SGImageWindowCommand::OnPointerEvent(Event& event)
                                          m_commandParameter2, m_commandParameter3);
             SetBlink(false);
         }
-        event.Clear();
-    } else if (event.m_type == Event::POINTER_DRAGGED) {
-        m_pressed = hit;
         event.Clear();
     }
 }
@@ -262,8 +263,9 @@ void SGClippedImageWindow::Paint(ICGraphics2d& graphics)
 }
 
 SGToggleButton::SGToggleButton(int archetype, int character, int normalAnimation,
-                             int selectedAnimation) : m_selected(false), m_allowTurnOff(true)
+                             int selectedAnimation) : m_allowTurnOff(true)
 {
+    m_selected = false;
     SGImageWindow* image = new SGImageWindow;
     image->SetArchetypeCharacter(archetype, character);
     image->SetAnimation(normalAnimation, 1);

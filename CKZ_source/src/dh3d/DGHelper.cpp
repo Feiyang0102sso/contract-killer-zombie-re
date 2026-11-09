@@ -87,8 +87,9 @@ DGHelper::DGHelper()
 void DGHelper::initGame()
 {
     graphics::ICRenderSurface* screen = graphics::ICGraphics::GetInstance()->GetTargetSurface();
-    unsigned int height;
+    // b147: width is declared first (higher stack slot, sp+4 in the original).
     unsigned int width;
+    unsigned int height;
     screen->GetWidthAndHeight(width, height);
     m_screenWidth = width;
     m_screenHeight = height;
@@ -126,7 +127,11 @@ void DGHelper::SetCameraSize(swerve::Camera<CSwerveAssertingErrorHandler>& camer
     float params[4];
     camera.getProjection(params);
     float aspect;
+    // b147: default is written first (original block order: default, 0/1, 2; range test first).
     switch (updateType) {
+    default:
+        aspect = params[1];
+        break;
     case CAMERA_SIZE_SET_ASPECT:
     case CAMERA_SIZE_SET_ASPECT_ONLY:
         aspect = (float)width / (float)height;
@@ -139,9 +144,6 @@ void DGHelper::SetCameraSize(swerve::Camera<CSwerveAssertingErrorHandler>& camer
         params[0] = params[0] * (oldAspect / aspect);
         break;
     }
-    default:
-        aspect = params[1];
-        break;
     }
     camera.setPerspective(params[0], aspect, params[2], params[3]);
 }
@@ -307,7 +309,10 @@ bool DGHelper::CreateAnimatableObject(swerve::Group<CSwerveAssertingErrorHandler
 
 void DGHelper::GetPosition(swerve::Transform<CSwerveAssertingErrorHandler> transform, vec3& position)
 {
-    position = GetPosition(transform);
+    vec3 result = GetPosition(transform);
+    position.m_x = result.m_x;
+    position.m_y = result.m_y;
+    position.m_z = result.m_z;
 }
 
 vec3 DGHelper::GetPosition(swerve::Transform<CSwerveAssertingErrorHandler> transform)
@@ -337,7 +342,7 @@ int DGHelper::GetTextWidth(const char* text, graphics::CFont* font)
 
 void DGHelper::getUserParameter(swerve::Object3D<CSwerveAssertingErrorHandler>& object, int id, char** value)
 {
-    if (object.m_interface == NULL) {
+    if (object == NULL) {
         return;
     }
     int length = object.getUserParameter(id, 0, NULL);

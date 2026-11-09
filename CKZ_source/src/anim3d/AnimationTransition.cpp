@@ -100,7 +100,7 @@ WeakIntrusivePtr<AnimationInstance> AnimationTransition::startAnimation(Animatio
         return descriptor->m_instance;
     }
 
-    WeakIntrusivePtr<AnimationInstance> instance = m_object->play(animation, weight, looped);
+    WeakIntrusivePtr<AnimationInstance> instance = m_object->play(animation, weight, false); // Set looping after registration.
     if (m_listener != NULL || looped == true) {
         instance->setListener(this);
     }
@@ -112,9 +112,9 @@ WeakIntrusivePtr<AnimationInstance> AnimationTransition::startAnimation(Animatio
 
     AnimationDescriptor newDescriptor;
     newDescriptor.m_instance = instance;
+    newDescriptor.m_weight = 0.0f;
     newDescriptor.m_looped = looped;
     newDescriptor.m_fadeSpeed = 1.0f / (float)fadeTime;
-    newDescriptor.m_weight = 0.0f;
     newDescriptor.m_state = STATE_FADE_IN;
     m_descriptors.addElement(newDescriptor);
     return instance;
