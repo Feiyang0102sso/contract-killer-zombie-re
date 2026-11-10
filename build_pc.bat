@@ -10,7 +10,8 @@ if not defined CKZ_MSBUILD if exist "%CKZ_VSWHERE%" (
 )
 if not defined CKZ_MSBUILD (
     echo Install Visual Studio 2022 or 2026 with the Windows C++ x86 tools and Windows SDK.
-    exit /b 1
+    set "CKZ_RESULT=1"
+    goto finish
 )
 echo Using MSBuild: "%CKZ_MSBUILD%"
 rem "build_pc.bat tests" builds the test program (vs\ckz_tests.vcxproj, tests\) instead of the game.
@@ -21,5 +22,15 @@ if /i "%~1"=="tests" (
     set "CKZ_EXE=zombsniper_tests.exe"
 )
 "%CKZ_MSBUILD%" "%CD%\vs\ckz_pc.sln" /m /t:%CKZ_TARGET% /p:Configuration=Release /p:Platform=Win32
-if errorlevel 1 exit /b 1
+if errorlevel 1 (
+    echo Build failed.
+    set "CKZ_RESULT=1"
+    goto finish
+)
 echo Built: %CD%\bin\Win32\Release\%CKZ_EXE%
+set "CKZ_RESULT=0"
+
+:finish
+rem Keep the window open when the script is started by double-click.
+pause
+exit /b %CKZ_RESULT%

@@ -57,6 +57,9 @@
     <None Include="..\zombsniper.cfg" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="zombsniper.rc" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="ckz_game.vcxproj">
       <Project>{843D472A-4247-41B8-915E-4311D565D831}</Project>
     </ProjectReference>

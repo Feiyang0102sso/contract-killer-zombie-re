@@ -6,7 +6,9 @@ _output/
 .cache/
 /out/
 /bin/
-/assets/
+/assets/*
+!/assets/Icon.png
+!/assets/Icon.ico
 /.venv/
 .vs/
 *.vcxproj.user
