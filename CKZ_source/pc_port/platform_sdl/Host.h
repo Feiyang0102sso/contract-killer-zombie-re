@@ -53,6 +53,17 @@ bool IsMissionInputActive();
 void TurnView(CApplet& applet, float mouseX, float mouseY);
 /** Press or release the HUD fire button. */
 void SetFireHeld(CApplet& applet, bool held);
+/** Mouse and pointer state the main loop keeps between frames. */
+struct LoopInput {
+    bool mouseCaptured = false; // mission: the mouse turns the view and the left button fires
+    bool pointerDown = false;   // menus: the left button is touch 1 and is down
+    float lookX = 0.0f;         // mouse movement collected since the last frame while captured
+    float lookY = 0.0f;
+};
+/** Handle the pending window events and run one game frame (sets `running` to false on quit). */
+void RunFrame(CApplet& applet, LoopInput& input);
+/** Create the applet and run the game until it quits; returns the exit code. */
+int RunApplet();
 /** Debug (F9): write the next presented game frame to frame_<n>_<w>x<h>.rgba next to the executable. */
 void RequestFrameDump();
 

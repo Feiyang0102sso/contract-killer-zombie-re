@@ -57,8 +57,9 @@ struct M3GKeyframeSequenceImpl
  *--------------------------------------------------------------------*/
 
 static M3Gint m3gGetNumComponents(const KeyframeSequence *sequence);
+/* CKZ: the time is a float (Swerve samples between whole milliseconds), see m3gGetSample. */
 static M3Gint m3gGetSample(KeyframeSequence *sequence,
-                           M3Gint time,
+                           M3Gfloat time,
                            M3Gfloat *sample);
 
 #endif /*__M3G_KEYFRAMESEQUENCE_H__*/

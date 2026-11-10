@@ -5,8 +5,9 @@
 #include "../platform_sdl/Host.h"
 #include "../platform_sdl/Config.h"
 #include "../swerve_native/NativeBackend.h"
+#include "ArmBackend.h"
 #ifdef CKZ_TESTS
-#include "../../../tests/ArmProfiler.h"
+#include "../../../tests/tests_tools/ArmProfiler.h"
 #endif
 #include <windows.h>
 #include <unicorn/unicorn.h>
@@ -446,6 +447,14 @@ uint32_t Call(uint32_t entry, const uint32_t* arguments, size_t count)
     return result;
 }
 
+int CreateSwerve(ISwerve** swerve)
+{
+    if (engine == nullptr && !Initialize()) {
+        return 1;
+    }
+    return Invoke<int>(SwvNew, swerve);
+}
+
 } // namespace ckz::arm
 
 extern "C" int swvNew(ISwerve** swerve)
@@ -456,8 +465,5 @@ extern "C" int swvNew(ISwerve** swerve)
         return ckz::native::CreateSwerve(swerve);
     }
     fprintf(stderr, "Swerve backend: ARM emulation (Engine=%s)\n", ckz::EngineSwerve);
-    if (ckz::arm::engine == nullptr && !ckz::arm::Initialize()) {
-        return 1;
-    }
-    return ckz::arm::Invoke<int>(ckz::arm::SwvNew, swerve);
+    return ckz::arm::CreateSwerve(swerve);
 }

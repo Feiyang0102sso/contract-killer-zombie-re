@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{5B0E3C61-7A2D-4F0E-9C5B-2E8D7A41C3F9}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>ckz_tests</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '18.0'">v145</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '17.0'">v143</PlatformToolset>
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="Win32.props" />
+  <Import Project="GameCompile.props" />
+  <PropertyGroup>
+    <!-- Test program next to the game: same folder, assets, saves and zombsniper.cfg (tests\README.md). -->
+    <TargetName>zombsniper_tests</TargetName>
+    <CkzGoogleTest>$(CkzThirdParty)\googletest-1.15.2</CkzGoogleTest>
+    <CkzOpenALImport>$(IntDir)OpenAL32.lib</CkzOpenALImport>
+    <LinkToolPath>$(CkzLlvm)</LinkToolPath>
+    <LinkToolExe>lld-link.exe</LinkToolExe>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <ForcedIncludeFiles>new</ForcedIncludeFiles>
+      <!-- CKZ_TESTS switches the platform layer's test hooks on (Applet.cpp, ArmMachine.cpp). -->
+      <PreprocessorDefinitions>CKZ_TESTS;GTEST_HAS_RTTI=0;GTEST_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(CkzGoogleTest)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <!-- A window program: no console unless DebugMode=1 opens one (Log.cpp). The entry stays wmain. -->
+      <SubSystem>Windows</SubSystem>
+      <EntryPointSymbol>wmainCRTStartup</EntryPointSymbol>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <BaseAddress>0x10000000</BaseAddress>
+      <AdditionalDependencies>$(CkzSDL)\lib\x86\SDL3.lib;$(CkzOpenALImport);opengl32.lib;user32.lib;gdi32.lib;winmm.lib;mfplat.lib;mfreadwrite.lib;mfuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/errorlimit:0 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(CkzAddressSanitizer)' == 'true'">
+    <Link>
+      <AdditionalDependencies>$(VCToolsInstallDir)lib\x86\clang_rt.asan_dynamic-i386.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/WHOLEARCHIVE:&quot;$(VCToolsInstallDir)lib\x86\clang_rt.asan_dynamic_runtime_thunk-i386.lib&quot; %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="HostSources.props" />
+  <ItemGroup>
+    <ClCompile Include="..\tests\TestProgram.cpp" />
+    <ClCompile Include="..\tests\GameHarness.cpp" />
+    <ClCompile Include="..\tests\BigArchive.cpp" />
+    <ClCompile Include="..\tests\M3gBackendTest.cpp" />
+    <ClCompile Include="..\tests\GameplayTest.cpp" />
+    <ClCompile Include="..\tests\tests_tools\ArmProfiler.cpp" />
+    <ClCompile Include="..\tests\tests_tools\TestTools.cpp" />
+    <ClCompile Include="..\tests\tests_tools\M3gLoadTest.cpp">
+      <AdditionalIncludeDirectories>$(CkzThirdParty)\m3gcore\inc;$(CkzPort)m3g_platform\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="$(CkzGoogleTest)\src\gtest-all.cc">
+      <AdditionalIncludeDirectories>$(CkzGoogleTest);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)external\</ObjectFileName>
+    </ClCompile>
+    <ClInclude Include="..\tests\TestProgram.h" />
+    <ClInclude Include="..\tests\GameHarness.h" />
+    <ClInclude Include="..\tests\BigArchive.h" />
+    <ClInclude Include="..\tests\tests_tools\ArmProfiler.h" />
+    <ClInclude Include="..\tests\tests_tools\TestTools.h" />
+    <ClInclude Include="..\tests\tests_tools\M3gLoadTest.h" />
+    <None Include="..\tests\README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="ckz_game.vcxproj">
+      <Project>{843D472A-4247-41B8-915E-4311D565D831}</Project>
+    </ProjectReference>
+    <ProjectReference Include="unicorn_arm.vcxproj">
+      <Project>{67EC55D4-5160-4284-A1D2-AD095E4F1FE2}</Project>
+    </ProjectReference>
+    <ProjectReference Include="m3gcore.vcxproj">
+      <Project>{D6456C8A-7BCE-494A-9361-835C1CBFA89F}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CreateOpenALImportLibrary" BeforeTargets="Link"
+          Inputs="$(MSBuildProjectFullPath);$(CkzOpenAL)\libs\Win32\OpenAL32.def" Outputs="$(CkzOpenALImport)">
+    <Exec Command="&quot;$(VCToolsInstallDir)bin\Hostx64\x86\lib.exe&quot; /nologo /machine:x86 /def:&quot;$(CkzOpenAL)\libs\Win32\OpenAL32.def&quot; /name:OpenAL32.dll /out:&quot;$(CkzOpenALImport)&quot;" />
+  </Target>
+  <Target Name="CopyRuntimeLibraries" AfterTargets="Build">
+    <Copy SourceFiles="$(CkzSDL)\lib\x86\SDL3.dll;$(CkzOpenAL)\bin\Win32\soft_oal.dll"
+          DestinationFiles="$(OutDir)SDL3.dll;$(OutDir)OpenAL32.dll" SkipUnchangedFiles="true" />
+    <!-- The repository's zombsniper.cfg is the master copy: every build puts it next to the exe. -->
+    <Copy SourceFiles="$(CkzRoot)zombsniper.cfg" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Copy Condition="'$(CkzAddressSanitizer)' == 'true'"
+          SourceFiles="$(VCToolsInstallDir)bin\Hostx64\x86\clang_rt.asan_dynamic-i386.dll"
+          DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="StageSwerve" AfterTargets="Build">
+    <Exec Command="&quot;$(CkzPython)&quot; &quot;$(CkzScripts)\stage_assets.py&quot; --output &quot;$(OutDir)swerve-arm.bin&quot;" />
+  </Target>
+</Project>

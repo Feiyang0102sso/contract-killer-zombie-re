@@ -1,11 +1,16 @@
-// Tools for automated checks of the PC port (PORT_PLAN.md P2, M4/M5).
-// Compiled only into the test build (CkzTests=true); each tool is off unless its environment
-// variable is set.
+// Tools for driving the game by hand or from scripts (PORT_PLAN.md P2, M4/M5).
+// Compiled only into the test program (vs/ckz_tests.vcxproj, zombsniper_tests.exe --play); each tool
+// is off unless its environment variable is set. The automated assertions are the gtest suites in tests/.
 #pragma once
 
 #include <SDL3/SDL.h>
 
 class CApplet;
+class CUnit;
+namespace swerve {
+template <class ErrorHandler> class Camera;
+}
+class CSwerveAssertingErrorHandler;
 
 namespace ckz::test {
 
@@ -30,19 +35,34 @@ constexpr float TestTurnCounts = 40.0f;
 constexpr const char* AutoPlayVariable = "CKZ_AUTOPLAY";
 constexpr const char* AutoPlaySurvival = "survival";
 
-// CKZ_HIDDEN: run without showing the window and without the missing-file dialog.
-constexpr const char* HiddenVariable = "CKZ_HIDDEN";
-
 /** Call once per frame; runs the head pick self-test when it is enabled. */
 void UpdatePickTest();
+
+/** Head of a unit on screen: game pixels and the distance along the view (clip w). */
+struct HeadOnScreen {
+    float x;
+    float y;
+    float depth;
+};
+
+/**
+ * Project the head hit zone (CVisualCharacterType::LoadModel) of a living unit to the screen.
+ * False when the unit has no hit zone, the head is behind the camera, or (with `onScreen`) the
+ * head is outside the screen.
+ */
+bool ProjectHead(CUnit* unit, swerve::Camera<CSwerveAssertingErrorHandler>& camera, HeadOnScreen& head,
+                 bool onScreen = true);
+
+/** True when the world map is the open screen (no mission running). */
+bool IsMapOpen();
+
+/** Start the survival mission from the open map. False when the map is not open or has none. */
+bool StartSurvivalMission();
 
 /** Call once per frame; starts the auto play mission once. */
 void UpdateAutoPlay();
 
 /** Handle a test key press or release; true when the key was a test key. */
 bool HandleTestKey(CApplet& applet, SDL_Keycode key, bool down);
-
-/** True when the game runs hidden (CKZ_HIDDEN). */
-bool RunHidden();
 
 } // namespace ckz::test

@@ -126,19 +126,21 @@ PC 版原生编译游戏代码，使用 SDL3 接入窗口和输入、桌面 Open
 
 安装 Visual Studio 的 x86 AddressSanitizer 组件后，可用 MSBuild 属性 `CkzAddressSanitizer=true` 构建带原生内存检查的版本，产物目录带 `-ASan` 后缀。
 
-## 测试版
+## 测试
 
-开发和自动化测试用的工具放在 [`tests/`](tests/)，不编进游戏。运行 `build_pc.bat tests`（即 MSBuild 属性 `CkzTests=true`）会在游戏同目录生成 `zombsniper_tests.exe`，与游戏共用素材、存档和 `zombsniper.cfg`，日志写入 `zombsniper_tests.log`。各项工具靠环境变量开启，说明见 [`TestTools.h`](tests/TestTools.h)、[`ArmProfiler.h`](tests/ArmProfiler.h) 和 [`M3gLoadTest.h`](tests/M3gLoadTest.h)。
+测试程序 `zombsniper_tests.exe` 由独立工程 [`vs/ckz_tests.vcxproj`](vs/ckz_tests.vcxproj) 生成，代码在 [`tests/`](tests/)，不编进游戏。运行 `build_pc.bat tests` 会把它放在游戏同目录，与游戏共用素材、存档和 `zombsniper.cfg`，日志写入 `zombsniper_tests.log`。
+
+直接运行就是跑全部自动化测试（[GoogleTest](CKZ_source/pc_port/3rd_party/googletest-1.15.2/)）：窗口一启动就最小化到任务栏（右键关闭即可随时终止），声音全部静音。测试分两组：原生 m3gcore 与原版 Swerve 的逐文件对拍，以及生存模式里的游戏断言（爆头与斩首、躯干命中、手雷和榴弹、各武器伤害）。加 `--play` 则是正常玩游戏，附带调试键、自动开局等工具。用法和每个测试的含义见 [`tests/README.md`](tests/README.md)。
 
 ## 目录
 
 | 路径 | 内容 |
 | --- | --- |
-| `vs/` | Visual Studio 解决方案、三个项目及共用属性表 |
+| `vs/` | Visual Studio 解决方案、各项目及共用属性表（`HostSources.props` 是游戏和测试程序共用的平台层源文件清单） |
 | `build_pc.bat` | Release Win32 一键构建入口 |
 | `CKZ_source/` | 恢复出的游戏源码，`packages/` 和 `src/` 沿用原目录布局 |
 | `CKZ_source/pc_port/` | PC 平台层、Swerve 兼容层和第三方依赖 |
-| `tests/` | 只编进测试版的自动化测试和性能分析工具 |
+| `tests/` | 测试程序：GoogleTest 自动化测试，`tests_tools/` 下是调试和性能分析工具 |
 | `scripts/` | LLVM 准备和 Swerve 镜像部署脚本 |
 | `out/`、`bin/` | 构建中间产物和可运行文件 |
 

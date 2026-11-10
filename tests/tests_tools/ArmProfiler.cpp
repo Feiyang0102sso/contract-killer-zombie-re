@@ -1,6 +1,6 @@
 // Test: hot-spot profiler of the emulated ARM Swerve core, see ArmProfiler.h.
 #include "ArmProfiler.h"
-#include "../CKZ_source/pc_port/swerve_compat/ArmCall.h"
+#include "../../CKZ_source/pc_port/swerve_compat/ArmCall.h"
 #include <windows.h>
 #include <SDL3/SDL.h>
 #include <stdio.h>

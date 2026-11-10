@@ -410,7 +410,8 @@ void TransformPoint(const M3GMatrix* matrix, const M3Gfloat* point, M3Gfloat* ou
  * when a skeleton hit is nearer. Distances compare directly: m3gcore's distance is the fraction of
  * the segment, which an affine change of coordinates keeps.
  */
-void PickSkeletons(M3GGroup root, int scope, const PickSegment& segment, M3GNode& node, M3Gfloat* result)
+void PickSkeletons(M3GGroup root, int scope, const PickSegment& segment, M3GNode& node, M3Gfloat* result,
+                   M3GCamera camera = nullptr, float x = 0.0f, float y = 0.0f)
 {
     std::vector<M3GGroup> skeletons;
     // The root itself must be pickable, as in m3gcore's own pick path test.
@@ -440,7 +441,15 @@ void PickSkeletons(M3GGroup root, int scope, const PickSegment& segment, M3GNode
             end[0] - start[0], end[1] - start[1], end[2] - start[2],
         };
         M3Gfloat localResult[PickResultFloats] = {};
-        const M3GNode skeletonHit = m3gPick3D(skeleton, scope, localRay, localResult);
+        M3GNode skeletonHit = nullptr;
+        if (camera != nullptr) {
+            // A camera pick picks the skeleton through the camera too: m3gcore only picks
+            // Sprite3Ds in 2D picks, and Swerve hits sprites hanging on bones (e.g. glows on a
+            // zombie, m3g_122462da). Its distance is the same near-to-far fraction as the root's.
+            skeletonHit = m3gPick2D(skeleton, scope, x, y, camera, localResult);
+        } else {
+            skeletonHit = m3gPick3D(skeleton, scope, localRay, localResult);
+        }
         if (skeletonHit == nullptr) {
             continue;
         }
@@ -501,16 +510,24 @@ void StorePick(Object* ray, unsigned char* hit, M3GNode node, const M3Gfloat* re
 /** Pick along a ray from `origin` in `direction`; the hit goes into the RayIntersection `ray`. */
 int PickRay(Object* self, int scope, const float* origin, const float* direction, Object* ray, unsigned char* hit)
 {
-    // m3gcore takes the ray as two points: origin and origin + direction.
+    // The skeleton picks take the ray as two points: origin and origin + direction.
     PickSegment segment;
     for (int axis = 0; axis < 3; axis++) {
         segment.points[axis] = origin[axis];
         segment.points[3 + axis] = origin[axis] + direction[axis];
     }
-    M3Gfloat points[PickRayFloats];
-    memcpy(points, segment.points, sizeof(points));
+    // m3gPick3D takes origin and direction and adds them itself (m3g_group.c). Handing it the end
+    // point instead doubled the origin into the direction: CUnitBody::Pick(line), the exact body
+    // test of projectiles that reach a zombie's bounding box, picked along a wrong ray far from the
+    // origin and mostly missed (launcher shells flew through zombies). Verified against the ARM
+    // backend by tests/M3gBackendTest.cpp (ray picks).
+    M3Gfloat originAndDirection[PickRayFloats];
+    for (int axis = 0; axis < 3; axis++) {
+        originAndDirection[axis] = origin[axis];
+        originAndDirection[3 + axis] = direction[axis];
+    }
     M3Gfloat result[PickResultFloats] = {};
-    M3GNode node = m3gPick3D(H<M3GGroup>(self), scope, points, result);
+    M3GNode node = m3gPick3D(H<M3GGroup>(self), scope, originAndDirection, result);
     int error = TakeError();
     if (error == ErrorNone) {
         PickSkeletons(H<M3GGroup>(self), scope, segment, node, result);
@@ -528,7 +545,7 @@ int PickCamera(Object* self, int scope, float x, float y, Object* camera, Object
     int error = TakeError();
     PickSegment segment;
     if (error == ErrorNone && CameraPickSegment(H<M3GGroup>(self), x, y, H<M3GCamera>(camera), segment)) {
-        PickSkeletons(H<M3GGroup>(self), scope, segment, node, result);
+        PickSkeletons(H<M3GGroup>(self), scope, segment, node, result, H<M3GCamera>(camera), x, y);
         error = TakeError();
     }
     StorePick(ray, hit, node, result);
@@ -812,7 +829,8 @@ int GetIndices(Object* self, int count, unsigned int* indices)
     if (count < size) {
         return ErrorInvalidParameter;
     }
-    m3gGetBatchIndices(H<M3GIndexBuffer>(self), 0, reinterpret_cast<M3Gint*>(indices));
+    // Swerve's corner order of the odd strip triangles, see M3gCkzCore.c.
+    ckzM3gGetSwerveTriangleIndices(H<M3GIndexBuffer>(self), reinterpret_cast<M3Gint*>(indices));
     return TakeError();
 }
 

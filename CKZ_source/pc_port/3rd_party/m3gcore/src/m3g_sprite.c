@@ -629,16 +629,11 @@ static M3Gbool m3gSpriteRayIntersect(Node *self,
         }
 
         {
-            /* Finally check against alpha */
-            M3Gint threshold = 0, alpha;
-
-            if (sprite->appearance->compositingMode) {
-                threshold = (M3Gint)m3gMul(m3gGetAlphaThreshold(sprite->appearance->compositingMode), 256);
-            }
-
-            alpha = m3gGetAlpha(sprite->image, (M3Gint)ri->textureS[0], (M3Gint)ri->textureT[0]);
-
-            if (alpha >= threshold) {
+            /* CKZ: no alpha test. m3gcore dropped the hit when the picked texel was more
+             * transparent than the alpha threshold; Swerve picks the whole sprite rectangle.
+             * Compared with the original on every M3G world of the game
+             * (tests/M3gBackendTest.cpp): the effect sprites of 1482f9d4 only match this way. */
+            {
                 /* Normalize texture coordinates */
                 ri->textureS[0] = m3gDiv(ri->textureS[0], (M3Gfloat) sprite->width);
                 ri->textureT[0] = m3gDiv(ri->textureT[0], (M3Gfloat) sprite->height);

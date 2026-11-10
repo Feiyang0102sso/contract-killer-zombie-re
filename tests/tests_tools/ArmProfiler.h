@@ -1,5 +1,5 @@
 // Test: hot-spot profiler of the emulated ARM Swerve core (Engine=swerve in zombsniper.cfg).
-// Compiled only into the test build (CkzTests=true). Set CKZ_ARM_PROFILE=1 before starting the
+// Compiled only into the test program (vs/ckz_tests.vcxproj). Set CKZ_ARM_PROFILE=1 before starting the
 // game, then press F8 to start and stop recording; stopping writes arm_profile.txt and
 // arm_callers.txt next to the executable.
 #pragma once

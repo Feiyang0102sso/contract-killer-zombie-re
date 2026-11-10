@@ -14,7 +14,8 @@
   - 目标是 165 帧（每帧约 6ms），只能去掉模拟器。
 - 调试工具（只在测试版 `zombsniper_tests.exe` 里，见 `tests/ArmProfiler.h`）：`zombsniper.cfg` 设 `Engine=swerve`，环境变量 `CKZ_ARM_PROFILE=1` 启动，按 F8 开始和停止录制，会写出 `arm_profile.txt`（guest 基本块热点）和 `arm_callers.txt`（按游戏侧调用栈统计的 Swerve 耗时）。
 - **2026-11-09 夜更新**：原生 m3gcore 后端已设为默认（`CKZ_SWERVE=arm` 切回模拟版；2026-11-10 起改为 `zombsniper.cfg` 的 `Engine=swerve`）。修好了命中特效白色巨型三角形和爆头无伤害两个 bug；生存模式 15 只僵尸时稳定 165 帧（垂直同步上限），主线程 CPU 约 1.2ms/帧。详见 P2 各里程碑。
-- 自动化测试设施（**2026-11-10 起移到 `tests/`，只编进测试版**：`build_pc.bat tests` 生成 `zombsniper_tests.exe`，与游戏同目录、共用素材；各项仍靠环境变量开启，见 `tests/TestTools.h`）：`CKZ_AUTOPLAY=survival` 自动开始生存模式；`CKZ_DEBUG_KEYS=1` 后 F10 开火、方向键转视角、F11 朝最近的头开一枪、F7 瞄准（鼠标被捕获时 SDL 读 raw input，外部注入的鼠标消息无效，键盘消息有效）；`CKZ_PICK_TEST=1` 每 1.5 秒对屏幕内每个僵尸的头部做拾取自检；`CKZ_HIDDEN=1` 隐藏窗口；`CKZ_M3G_LOADTEST=<目录>` 跑 m3g 加载测试。游戏版的调试项改由 `zombsniper.cfg` 控制：`DebugMode=1` 打开黑框和 F9（导出下一帧），再加 `FpsLog=1` 每秒记录帧率、工作耗时、主线程 CPU 时间和存活僵尸数；`CKZ_SWERVE`、`CKZ_NO_VSYNC`、`CKZ_FPS_LOG` 已由 `Engine`、`VSync`、`FpsLog` 取代。所有输出写入 exe 同目录的同名 `.log`。`CKZ_INPUT_TRACE`、`CKZ_GL_DEBUG`、`CKZ_NATIVE_TRACE` 已删除。
+- **2026-11-10**：测试改为独立工程 `vs/ckz_tests.vcxproj`（GoogleTest），产物仍是 `zombsniper_tests.exe`。默认跑自动化断言（窗口最小化、静音、可从任务栏关闭）：两个 Swerve 后端逐文件对拍（`M3gBackendTest.cpp`）和生存模式里的游戏断言（`GameplayTest.cpp`：爆头判定与斩首、躯干命中、手雷/榴弹落地爆炸、多角度爆炸物统计、各武器伤害）；`--play` 正常玩并带调试工具。见 `tests/README.md`。
+- 自动化测试设施（**2026-11-10 起移到 `tests/tests_tools/`，只编进测试程序**：`build_pc.bat tests` 生成 `zombsniper_tests.exe`，与游戏同目录、共用素材；各项仍靠环境变量开启，见 `tests/TestTools.h`）：`CKZ_AUTOPLAY=survival` 自动开始生存模式；`CKZ_DEBUG_KEYS=1` 后 F10 开火、方向键转视角、F11 朝最近的头开一枪、F7 瞄准（鼠标被捕获时 SDL 读 raw input，外部注入的鼠标消息无效，键盘消息有效）；`CKZ_PICK_TEST=1` 每 1.5 秒对屏幕内每个僵尸的头部做拾取自检；`CKZ_HIDDEN=1` 隐藏窗口；`CKZ_M3G_LOADTEST=<目录>` 跑 m3g 加载测试。游戏版的调试项改由 `zombsniper.cfg` 控制：`DebugMode=1` 打开黑框和 F9（导出下一帧），再加 `FpsLog=1` 每秒记录帧率、工作耗时、主线程 CPU 时间和存活僵尸数；`CKZ_SWERVE`、`CKZ_NO_VSYNC`、`CKZ_FPS_LOG` 已由 `Engine`、`VSync`、`FpsLog` 取代。所有输出写入 exe 同目录的同名 `.log`。`CKZ_INPUT_TRACE`、`CKZ_GL_DEBUG`、`CKZ_NATIVE_TRACE` 已删除。
 
 ## 1. 目标与非目标
 
@@ -234,7 +235,11 @@ EPL-1.0 是文件级弱 copyleft：我们改过的 m3gcore 文件要以 EPL 提�
 
 **完成标准**：能对 119 个文件输出差异报告。
 
-> 现状（未单独做）：改用「游戏内 A/B」：同一个 exe、同一份存档，分别用两个后端跑同一段注入脚本，对比 F9 导出的帧和日志；语义存疑的槽位直接在两个后端上用同样的参数探测（例如用非单位矩阵调用每个 Transform 槽位）。这种方式已经找出下面 M3/M4 列的全部语义差异。独立的逐文件对拍工具仍值得做，用来系统覆盖动画插值和拾取，留作后续。
+> 结果（2026-11-10，做成了 gtest 测试）：`tests/M3gBackendTest.cpp`。不是单独的程序，而是测试程序 `zombsniper_tests.exe` 里的参数化测试 `Zombsniper/M3gBackends.*`：在同一进程里同时建原生运行时和 Unicorn 里的原版 Swerve（`ckz::arm::CreateSwerve`），对 `zombsniper.big` 的 172 个 M3G（含 50 个 Swerve 扩展格式）分别用游戏自己的 `CSwerveLoader` 加载，逐项比较节点树、userID、变换、世界矩阵、开关、网格顶点与三角形索引、相机投影、动画轨道；在 5 个世界时间 `animate()` 后再比；对每个控制器单独置权重 1、从小数序列位置开始播放后再比（游戏播放动画的方式）；World 根节点再比较 9×9 网格的相机拾取和射线拾取。说明见 `tests/README.md`。
+>
+> 首轮 95/172 一致，修完下表新增各项后 **168/172 一致**（拾取法线允许约 2°，共面面片同距离计为平局，规则见 `tests/README.md`），剩余 4 个都是拾取的数值边界（见 M3 结果表最后一行）。
+>
+> 以前的做法（保留作参考）：改用「游戏内 A/B」：同一个 exe、同一份存档，分别用两个后端跑同一段注入脚本，对比 F9 导出的帧和日志；语义存疑的槽位直接在两个后端上用同样的参数探测（例如用非单位矩阵调用每个 Transform 槽位）。这种方式已经找出下面 M3/M4 列的全部语义差异。独立的逐文件对拍工具仍值得做，用来系统覆盖动画插值和拾取，留作后续。
 
 #### M3 native 后端（L）
 
@@ -257,6 +262,19 @@ EPL-1.0 是文件级弱 copyleft：我们改过的 m3gcore 文件要以 EPL 提�
 > | Group 槽位 82 `removeChild` | 允许移除被 m3gcore 标为骨骼（`hasBones`）的节点；m3gcore 复制节点时会把该标志带给克隆体 | 斩首飞出的头颅（20% 概率）无法移除，永久留在场景里 |
 > | Swerve 扩展格式文件（文件头 `\xbbSWERVE\xab`，50 个） | 私有对象类型 25 是 PVRTC 贴图 | `SwerveExtendedM3g.cpp` 转成标准 Image2D |
 > | Graphics3D `BindTarget` / `ReleaseTarget` | 与游戏共用 GL 上下文 | 保存、恢复游戏的 GL 状态；`glClearDepthf(1)` |
+>
+> 2026-11-10 由 `tests/M3gBackendTest.cpp` 对拍新发现并修复（m3gcore 内部的改动见 `3rd_party/README.md` 的「CKZ 补丁」）：
+>
+> | 位置 | Swerve 的实际语义 | 原生原来的问题 |
+> | --- | --- | --- |
+> | Group 槽位 83 射线 `pick` | 原点 + 方向 | 适配层把终点（原点 + 方向）交给 `m3gPick3D`，而它自己还会再加一次原点：射线方向错成「原点 + 方向」。`CUnitBody::Pick(line)`（投射物进入僵尸包围盒后的精确判定，榴弹等）在僵尸局部坐标里原点远离 0，几乎全部打偏，榴弹会穿过僵尸 |
+> | IndexBuffer 槽位 33 `getIndices` | 条带里奇数三角形按 `(s[i+1], s[i], s[i+2])` 输出 | m3gcore 输出同一三角形的另一种起点；`CCollision::BuildMesh` 以第一个顶点为基准算边向量和平面参数，碰撞网格数值与原版不同 |
+> | 拾取法线 | 有顶点法线的普通网格：插值顶点法线；无法线网格和 SkinnedMesh：三角形面法线 | m3gcore 对无法线网格返回 (0,0,1)，对蒙皮网格返回插值顶点法线：僵尸身上的命中特效、墙面弹孔、投射物反弹方向不同 |
+> | 精灵拾取 | 不做纹理 alpha 测试 | m3gcore 在透明纹素处不算命中 |
+> | 关键帧采样 | 浮点序列时间；CONSTANT 序列时间钳到 `duration - 1` | m3gcore 先四舍五入到整毫秒、超出结尾取最后一帧：动画有 1 ms 量化，一次性动画停住的姿势和结尾处的可见性不同 |
+> | 动画轨道顺序（`getAnimationTrack(i)`） | 与 m3gcore 不同（m3gcore 按目标属性排序） | 不影响游戏：游戏按索引遍历轨道只为找控制器或最长时长。测试按集合比较 |
+> | 骨架里的精灵 | 相机拾取能命中挂在骨骼上的 Sprite3D | 适配层对骨架的补充拾取用的是 3D 射线，m3gcore 规定 3D 射线不拾取精灵；改为相机拾取时对骨架也做 2D 拾取 |
+> | 剩余（未修） | 共面重叠面片同距离时谁先命中；蒙皮顶点的细微数值差（法线约 1°）；个别擦边射线 | 两边浮点误差不同，属于数值边界，不是语义差异 |
 
 #### M4 游戏内收敛（M）
 

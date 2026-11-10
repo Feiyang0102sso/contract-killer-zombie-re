@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Platform layer, Swerve backends and runtime glue of the executable: shared by ckz_pc (the game,
+     zombsniper.exe) and ckz_tests (the test program, zombsniper_tests.exe). -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Applet.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Audio.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Cheat.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Config.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Log.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\DebugTools.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Controls.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Core.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Files.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\GlesDesktop.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Graphics.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Movie.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\SystemFont.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\stubs\Ads.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\stubs\GServe.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\stubs\OfflinePlatform.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\swerve_compat\ArmImports.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\swerve_compat\ArmMachine.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\swerve_native\NativeRuntime.cpp;..\CKZ_source\pc_port\swerve_native\NativeScene.cpp;..\CKZ_source\pc_port\swerve_native\NativeTransform.cpp;..\CKZ_source\pc_port\swerve_native\NativeLoader.cpp;..\CKZ_source\pc_port\swerve_native\NativeImage.cpp;..\CKZ_source\pc_port\swerve_native\NativeGraphics3D.cpp;..\CKZ_source\pc_port\swerve_native\SwerveExtendedM3g.cpp">
+      <AdditionalIncludeDirectories>$(CkzThirdParty)\m3gcore\inc;$(CkzPort)m3g_platform\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)swerve_native\</ObjectFileName>
+    </ClCompile>
+    <ClInclude Include="..\CKZ_source\pc_port\swerve_native\NativeBackend.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\swerve_native\NativeRuntime.h" />
+    <ClCompile Include="..\CKZ_source\packages\platformglu\src\cocoa\src\NPMalloc.cpp" />
+    <ClCompile Include="..\CKZ_source\packages\platformglu\src\cocoa\src\NPMem.cpp" />
+    <ClCompile Include="$(CkzThirdParty)\powervr\PVRTDecompress.cpp">
+      <ObjectFileName>$(IntDir)external\</ObjectFileName>
+    </ClCompile>
+    <ClInclude Include="..\CKZ_source\pc_port\include\GamePrefix.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\include\libkern\OSByteOrder.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\include\OpenAL\al.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\include\OpenAL\alc.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\include\OpenGLES\ES1\gl.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\include\OpenGLES\ES1\glext.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\include\pthread.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\include\strings.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\AssetPaths.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\Cheat.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\Config.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\Log.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\DebugTools.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\Host.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\KeyBindings.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\swerve_compat\ArmBackend.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\swerve_compat\ArmCall.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\swerve_compat\ArmImports.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\swerve_compat\SwerveApi.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\swerve_compat\twb_queryinterface.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\swerve_compat\tws.h" />
+    <None Include="..\CKZ_source\pc_port\swerve_compat\ArmImportNames.inc" />
+    <None Include="..\scripts\prepare_toolchain.py" />
+    <None Include="..\scripts\stage_assets.py" />
+    <None Include="..\CKZ_source\pc_port\swerve_compat\swerve-arm.bin" />
+  </ItemGroup>
+</Project>

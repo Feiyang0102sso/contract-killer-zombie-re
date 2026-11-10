@@ -1,5 +1,5 @@
 // Test: M0 check of the native M3G engine (PORT_PLAN.md, P2): load M3G files with m3gcore.
-// Compiled only into the test build (CkzTests=true).
+// Compiled only into the test program (vs/ckz_tests.vcxproj).
 #pragma once
 
 namespace ckz::m3g {

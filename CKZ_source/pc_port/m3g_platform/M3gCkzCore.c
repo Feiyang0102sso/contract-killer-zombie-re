@@ -30,3 +30,46 @@ M3G_API void ckzM3gRemoveChild(M3GGroup group, M3GNode child)
     m3gRemoveChild(group, child);
     node->hasBones = hadBones;
 }
+
+/*
+ * IndexBuffer triangle list in Swerve's vertex order.
+ *
+ * m3gGetBatchIndices lists triangle i of a strip s as (s[i], s[i+1], s[i+2]) when i is even and as
+ * (s[i], s[i+2], s[i+1]) when i is odd. Swerve lists the odd one as (s[i+1], s[i], s[i+2]): the
+ * same triangle with the same winding, starting at another corner. CCollision::BuildMesh takes the
+ * first corner as the base of its edge vectors and plane products, so the collision mesh only
+ * matches the original with Swerve's order. Compared on every M3G file of the game against the ARM
+ * backend (tests/M3gBackendTest.cpp, "firstIndices"). `indices` holds m3gGetBatchSize entries.
+ */
+M3G_API void ckzM3gGetSwerveTriangleIndices(M3GIndexBuffer handle, M3Gint *indices)
+{
+    const IndexBuffer *buffer = (const IndexBuffer *) handle;
+    M3Gint strip;
+    M3Gint corner;
+    M3Gint triangle = 0;
+    M3Gint triangleIndices[4] = {0, 0, 0, 0};
+
+    for (strip = 0; strip < buffer->stripCount; strip++) {
+        for (corner = 0; corner < buffer->lengths[strip] - 2; corner++) {
+            m3gGetIndices(buffer, triangle, triangleIndices);
+            if (triangleIndices[3] == 0) {
+                *indices++ = triangleIndices[0];
+                *indices++ = triangleIndices[1];
+                *indices++ = triangleIndices[2];
+            }
+            else {
+                *indices++ = triangleIndices[1];
+                *indices++ = triangleIndices[0];
+                *indices++ = triangleIndices[2];
+            }
+            triangle++;
+        }
+        /* Skip the degenerate triangles that stitch the strips together (as m3gGetBatchIndices). */
+        if (buffer->lengths[strip] & 1) {
+            triangle += 5;
+        }
+        else {
+            triangle += 4;
+        }
+    }
+}

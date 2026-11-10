@@ -299,7 +299,11 @@ static M3Gbool m3gMeshRayIntersectInternal(	Mesh *mesh,
                 ri->intersected = (Node *)mesh;
 
                 /* Fetch normal */
-                if (m3gGetNormal(vertices, indices[0], &v0)) {
+                /* CKZ: a SkinnedMesh reports the face normal of the skinned triangle, like a mesh
+                 * without normals (else branch), not its interpolated vertex normals. This is the
+                 * normal of every hit on a zombie (CUnitBody::Pick -> DrawHitEffect). Compared with
+                 * the original on every M3G file of the game (tests/M3gBackendTest.cpp). */
+                if (m3gGetClass((Object *)mesh) != M3G_CLASS_SKINNED_MESH && m3gGetNormal(vertices, indices[0], &v0)) {
                     m3gGetNormal(vertices, indices[1], &v1);
                     m3gGetNormal(vertices, indices[2], &v2);
 
@@ -322,9 +326,22 @@ static M3Gbool m3gMeshRayIntersectInternal(	Mesh *mesh,
                             m3gMul(v2.z, tuv.z)));
                 }
                 else {
-                    ri->normal[0] = 0.f;
-                    ri->normal[1] = 0.f;
-                    ri->normal[2] = 1.f;
+                    /* CKZ: Swerve reports the face normal of a mesh without vertex normals
+                     * (m3gcore reported 0,0,1). v0..v2 still hold the corner positions here;
+                     * odd strip triangles come with reversed winding (indices[3]). Compared
+                     * with the original on every M3G world of the game (tests/M3gBackendTest.cpp). */
+                    Vec3 edge1 = v1;
+                    Vec3 edge2 = v2;
+                    Vec3 faceNormal;
+                    m3gSubVec3(&edge1, &v0);
+                    m3gSubVec3(&edge2, &v0);
+                    m3gCross(&faceNormal, &edge1, &edge2);
+                    if (indices[3] != 0) {
+                        m3gScaleVec3(&faceNormal, -1.f);
+                    }
+                    ri->normal[0] = faceNormal.x;
+                    ri->normal[1] = faceNormal.y;
+                    ri->normal[2] = faceNormal.z;
                 }
             
                 /* Fetch texture coordinates for each unit */

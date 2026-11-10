@@ -11,6 +11,9 @@ extern "C" {
 /** Group.removeChild as Swerve does it: also removes nodes m3gcore flags as skeleton bones. */
 M3G_API void ckzM3gRemoveChild(M3GGroup group, M3GNode child);
 
+/** The triangle list of an index buffer with Swerve's corner order (m3gGetBatchSize entries). */
+M3G_API void ckzM3gGetSwerveTriangleIndices(M3GIndexBuffer buffer, M3Gint *indices);
+
 #ifdef __cplusplus
 }
 #endif

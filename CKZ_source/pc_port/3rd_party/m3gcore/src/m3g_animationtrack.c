@@ -76,7 +76,7 @@ static void m3gGetContribution(const AnimationTrack *track, M3Gint time,
     {
         M3Gfloat stackSampleVector[4];
         Interface *m3g = M3G_INTERFACE(track);
-        M3Gint i, sampleTime, sampleValidity;
+        M3Gint i, sampleValidity;
         M3Gfloat weight;
         M3Gint sampleLength = m3gGetNumComponents(track->sequence);
         M3Gfloat *sample;
@@ -110,8 +110,8 @@ static void m3gGetContribution(const AnimationTrack *track, M3Gint time,
             sample = stackSampleVector;
         }
         
-        sampleTime = m3gRoundToInt(m3gGetPosition(track->controller, time));
-        sampleValidity = m3gGetSample(track->sequence, sampleTime, sample);
+        /* CKZ: no rounding to whole milliseconds, Swerve samples at the exact sequence time. */
+        sampleValidity = m3gGetSample(track->sequence, m3gGetPosition(track->controller, time), sample);
         sampleInfo->validity = sampleValidity;
 
         /* Only bother if there was no error in GetSample... */

@@ -1,10 +1,12 @@
 // Tools for automated checks of the PC port, see TestTools.h.
 #include "TestTools.h"
 #include "ArmProfiler.h"
-#include "../CKZ_source/pc_port/platform_sdl/DebugTools.h"
-#include "../CKZ_source/pc_port/platform_sdl/Host.h"
+#include "../../CKZ_source/pc_port/platform_sdl/DebugTools.h"
+#include "../../CKZ_source/pc_port/platform_sdl/Host.h"
 #include <stdio.h>
 #include <string.h>
+// The PC copy of the Swerve API first (see GameplayTest.cpp).
+#include <SwerveApi.h>
 #include "App.h"
 #include "CApplet.h"
 #include "CGPSMapGame.h"
@@ -38,18 +40,9 @@ const char* HitTypeName(EHitType hitType)
     return "?";
 }
 
-/** Head of a unit on screen: game pixels and the distance along the view (clip w). */
-struct HeadOnScreen {
-    float x;
-    float y;
-    float depth;
-};
+} // namespace
 
-/**
- * Project the head hit zone (CVisualCharacterType::LoadModel) of a living unit to the screen.
- * False when the unit has no hit zone or the head is not on screen.
- */
-bool ProjectHead(CUnit* unit, Camera& camera, HeadOnScreen& head)
+bool ProjectHead(CUnit* unit, Camera& camera, HeadOnScreen& head, bool onScreen)
 {
     if (unit == nullptr || unit->m_dead || unit->m_hp == 0) {
         return false;
@@ -80,11 +73,16 @@ bool ProjectHead(CUnit* unit, Camera& camera, HeadOnScreen& head)
     head.x = (point[0] / point[3] + 1.0f) * 0.5f * screenWidth;
     head.y = (1.0f - point[1] / point[3]) * 0.5f * screenHeight;
     head.depth = point[3];
+    if (!onScreen) {
+        return true;
+    }
     if (head.x < 0.0f || head.y < 0.0f || head.x >= screenWidth || head.y >= screenHeight) {
         return false;
     }
     return true;
 }
+
+namespace {
 
 /** F11: shoot once at the nearest head on screen through the game's own shot path. */
 void ShootNearestHead()
@@ -170,6 +168,66 @@ void UpdatePickTest()
     }
 }
 
+/** True when `wanted` is `root` or one of its descendants (without touching `wanted` itself). */
+bool InWindowTree(const Window* root, const Window* wanted)
+{
+    for (const Window* child = root; child != nullptr; child = child->m_nextSibling) {
+        if (child == wanted) {
+            return true;
+        }
+        if (InWindowTree(child->m_firstChild, wanted)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool IsMapOpen()
+{
+    auto* app = static_cast<App*>(WindowApp::m_instance);
+    if (app == nullptr || app->m_helper == nullptr) {
+        return false;
+    }
+    CGPSMapScreen* mapScreen = app->m_helper->m_gpsScreen;
+    if (app->m_helper->m_swerveGame != nullptr || mapScreen == nullptr) {
+        return false;
+    }
+    // DGHelper keeps m_gpsScreen after the map screen is deleted for a mission (the original never
+    // clears it); until the next map screen exists the pointer dangles. Only use it once it is
+    // part of the live window tree again.
+    if (!InWindowTree(app->m_desktop, mapScreen)) {
+        return false;
+    }
+    if (mapScreen->m_mapGame == nullptr) {
+        return false;
+    }
+    return mapScreen->m_mapGame->m_parent == mapScreen;
+}
+
+bool StartSurvivalMission()
+{
+    if (!IsMapOpen()) {
+        return false;
+    }
+    auto* app = static_cast<App*>(WindowApp::m_instance);
+    // The survival ("endless") mission sits on the map location of type MISSION_EM.
+    CGPSMapGame* map = app->m_helper->m_gpsScreen->m_mapGame;
+    for (int index = 0; index < map->m_locations.size(); index++) {
+        CMapLocation* location = map->m_locations[index];
+        if (location->m_missionType != CMission::MISSION_EM || !location->HasMission()) {
+            continue;
+        }
+        const CMission* mission = app->m_missionManager->GetMissionByName(location->GetCurrentMission());
+        if (mission == nullptr) {
+            continue;
+        }
+        fprintf(stderr, "Auto play: starting the survival mission\n");
+        map->StartMission(mission);
+        return true;
+    }
+    return false;
+}
+
 void UpdateAutoPlay()
 {
     static bool started = false;
@@ -180,33 +238,7 @@ void UpdateAutoPlay()
     if (mode == nullptr || strcmp(mode, AutoPlaySurvival) != 0) {
         return;
     }
-    auto* app = static_cast<App*>(WindowApp::m_instance);
-    if (app == nullptr || app->m_helper == nullptr) {
-        return;
-    }
-    CGPSMapScreen* mapScreen = app->m_helper->m_gpsScreen;
-    const bool inMission = app->m_helper->m_swerveGame != nullptr;
-    const bool mapOpen = !inMission && mapScreen != nullptr && mapScreen->m_mapGame != nullptr &&
-        mapScreen->m_mapGame->m_parent == mapScreen;
-    if (!mapOpen) {
-        return;
-    }
-    // The survival ("endless") mission sits on the map location of type MISSION_EM.
-    CGPSMapGame* map = mapScreen->m_mapGame;
-    for (int index = 0; index < map->m_locations.size(); index++) {
-        CMapLocation* location = map->m_locations[index];
-        if (location->m_missionType != CMission::MISSION_EM || !location->HasMission()) {
-            continue;
-        }
-        const CMission* mission = app->m_missionManager->GetMissionByName(location->GetCurrentMission());
-        if (mission == nullptr) {
-            continue;
-        }
-        started = true;
-        fprintf(stderr, "Auto play: starting the survival mission\n");
-        map->StartMission(mission);
-        return;
-    }
+    started = StartSurvivalMission();
 }
 
 bool HandleTestKey(CApplet& applet, SDL_Keycode key, bool down)
@@ -259,11 +291,6 @@ bool HandleTestKey(CApplet& applet, SDL_Keycode key, bool down)
     default:
         return false;
     }
-}
-
-bool RunHidden()
-{
-    return SDL_getenv(HiddenVariable) != nullptr;
 }
 
 } // namespace ckz::test

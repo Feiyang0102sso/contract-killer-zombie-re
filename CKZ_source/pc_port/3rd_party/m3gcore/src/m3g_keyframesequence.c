@@ -609,13 +609,29 @@ static M3G_INLINE void m3gSquadSample(const KeyframeSequence *sequence,
  * \param sample        pointer to sample
  * \return              sample validity
  */
+/* CKZ: validity (ms until the sample may change) of a float time span; at least 1, because a
+ * validity of 0 means an error to m3gObjectApplyAnimation. */
+static M3Gint m3gValidityOf(M3Gfloat span)
+{
+    M3Gint whole = (M3Gint) span;
+    if (whole < 1) {
+        return 1;
+    }
+    return whole;
+}
+
+/* CKZ: `time` is a float. m3gcore rounded the sequence time to whole milliseconds first; Swerve
+ * interpolates at the exact time, and the game drives controllers with fractional positions
+ * (speeds, setPosition), so whole-millisecond sampling made every animation step slightly off.
+ * Found with a fractional start position against the ARM backend (tests/M3gBackendTest.cpp). */
 static M3Gint m3gGetSample(KeyframeSequence *sequence,
-                           M3Gint time,
+                           M3Gfloat time,
                            M3Gfloat *sample)
 {
     M3Gint start, end, i;
     const M3Gfloat *value;
     M3Gfloat s;
+    const M3Gfloat duration = (M3Gfloat) sequence->duration;
     
     M3G_VALIDATE_OBJECT(sequence);
     
@@ -634,20 +650,27 @@ static M3Gint m3gGetSample(KeyframeSequence *sequence,
        sequence. */
     
     if (sequence->closed) {
-        if (time < 0)
-            time = (time % sequence->duration) + sequence->duration;
-        else
-            time = time % sequence->duration;
+        time = (M3Gfloat) fmod(time, duration);
+        if (time < 0) {
+            time += duration;
+        }
         if (time < sequence->keyframeTimes[sequence->firstValid]) {
-            time += sequence->duration;
+            time += duration;
         }
     }
     else {
+        /* CKZ: Swerve maps the time of a CONSTANT sequence into [0, duration - 1]: past the end
+         * it shows the pose 1 ms before the duration, not the last keyframe (a one-shot animation
+         * whose last segment still moves stops slightly earlier). Found by summing the tracks of
+         * the game's models at several times against the ARM backend (tests/M3gBackendTest.cpp). */
+        if (time > duration - 1) {
+            time = duration - 1;
+        }
         if (time < sequence->keyframeTimes[sequence->firstValid]) {
             value = m3gKeyframeAt(sequence, sequence->firstValid);
             for (i = 0; i < sequence->numComponents; i++)
                 sample[i] = value[i];
-            return (sequence->keyframeTimes[sequence->firstValid] - time);
+            return m3gValidityOf(sequence->keyframeTimes[sequence->firstValid] - time);
         }
         else if (time >= sequence->keyframeTimes[sequence->lastValid]) {
             value = m3gKeyframeAt(sequence, sequence->lastValid);
@@ -681,11 +704,12 @@ static M3Gint m3gGetSample(KeyframeSequence *sequence,
         value = m3gKeyframeAt(sequence, start);
         for (i = 0; i < sequence->numComponents; i++)
             sample[i] = value[i];
-        return (sequence->interpolation == M3G_STEP)
-               ? (m3gTimeDelta(sequence, start) - (time - sequence->keyframeTimes[start]))
-               : 1;
+        if (sequence->interpolation == M3G_STEP) {
+            return m3gValidityOf(m3gTimeDelta(sequence, start) - (time - sequence->keyframeTimes[start]));
+        }
+        return 1;
     }
-    s = m3gDivif(time - sequence->keyframeTimes[start], m3gTimeDelta(sequence, start));
+    s = m3gDiv(time - (M3Gfloat) sequence->keyframeTimes[start], (M3Gfloat) m3gTimeDelta(sequence, start));
     
     /* Pick the correct interpolation function and pass the
        segment start and end keyframe indices. */
