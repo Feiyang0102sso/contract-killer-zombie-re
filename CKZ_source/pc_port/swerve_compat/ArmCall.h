@@ -10,6 +10,8 @@ uint32_t Call(uint32_t entry, const uint32_t* arguments, size_t count);
 bool IsCode(uint32_t address);
 const void* ResolvePointer(uint32_t address);
 uint32_t EncodePointer(const void* address);
+/** Start or stop the guest hot-spot profiler (needs CKZ_ARM_PROFILE); stopping writes arm_profile.txt. */
+void ToggleProfile();
 
 // The original ARMv7 calling convention passes these values as 32-bit words.
 template<class T>

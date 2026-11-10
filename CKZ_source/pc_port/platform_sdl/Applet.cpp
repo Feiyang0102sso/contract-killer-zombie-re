@@ -1,5 +1,6 @@
 // Bridge SDL lifecycle and pointer events to the original Glu applet.
 #include "Host.h"
+#include "../swerve_compat/ArmCall.h"
 #include <stdio.h>
 #include <wchar.h>
 #include <string>
@@ -134,7 +135,10 @@ int RunApplet()
                 SetFireHeld(applet, false);
                 break;
             case SDL_EVENT_KEY_DOWN:
-                if (!event.key.repeat) {
+                if (!event.key.repeat && event.key.key == SDLK_F8) {
+                    // Debug: start or stop the Swerve hot-spot profiler.
+                    ckz::arm::ToggleProfile();
+                } else if (!event.key.repeat) {
                     HandleKeyDown(applet, event.key.key);
                     HandleCheatKey(event.key.key);
                 }

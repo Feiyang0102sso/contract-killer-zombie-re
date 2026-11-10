@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
+#include <array>
 #include <filesystem>
 #include <map>
 #include <vector>
@@ -27,6 +29,32 @@ constexpr size_t ImageSize = TrapBase - ImageBase;
 constexpr size_t PageSize = 0x1000;
 constexpr size_t StackSize = 0x200000;
 constexpr size_t ArgumentWords = 12;
+// Guest hot-spot profiler: enabled by this environment variable, recording toggled with F8.
+constexpr const char* ProfileVariable = "CKZ_ARM_PROFILE";
+constexpr const char* ProfileFileName = "arm_profile.txt";
+constexpr const char* ProfileCallersFileName = "arm_callers.txt";
+constexpr size_t ProfileCallerFrames = 8; // native frames kept per top-level Swerve call
+constexpr size_t CodeWords = (CodeEnd - CodeStart + 3) / 4;
+// Guest-side replacements live in the trap page after the import slots, outside the trap hook.
+constexpr uint32_t GuestStubBase = TrapBase + 0x800;
+constexpr uint32_t ArmReturn = 0xe12fff1e; // bx lr
+
+/**
+ * Imports run as ARM code inside the guest instead of trapping to the host.
+ * A trap stops and restarts Unicorn; the mipmap loop divides 3 times per pixel,
+ * so trapped divisions dominated mission frame time. Cortex-A15 has udiv/sdiv.
+ */
+struct GuestImport {
+    const char* name;
+    uint32_t code[3]; // ends with bx lr; unused words stay 0
+};
+
+const GuestImport GuestImports[] = {
+    { "__udivsi3", { 0xe730f110, ArmReturn } },             // udiv r0, r0, r1
+    { "__divsi3", { 0xe710f110, ArmReturn } },              // sdiv r0, r0, r1
+    { "__modsi3", { 0xe712f110, 0xe0600192, ArmReturn } },  // sdiv r2, r0, r1; mls r0, r2, r1, r0
+};
+constexpr size_t GuestImportBytes = sizeof(GuestImports[0].code);
 
 const char* const ImportNames[] = {
     "",
@@ -65,6 +93,143 @@ uint32_t reachedTrap;
 unsigned char* image;
 Import imports[ImportCount];
 std::map<uint64_t, uint64_t> mappedRanges;
+
+/** Native return addresses above a top-level Swerve call, innermost first. */
+using CallerStack = std::array<uint32_t, ProfileCallerFrames>;
+
+/** Cost of all top-level Swerve calls made from one native call stack. */
+struct CallerCost {
+    uint64_t calls = 0;
+    double seconds = 0.0;
+    uint64_t instructions = 0; // guest instructions executed, nested calls included
+};
+
+/** Per guest basic block counters, indexed by (block address - CodeStart) / 4. */
+struct BlockProfile {
+    std::vector<uint64_t> hits;
+    std::vector<uint32_t> instructions; // instructions in the block
+    std::vector<uint32_t> floatInstructions; // VFP/NEON instructions in the block
+    bool recording = false;
+    double recordStart = 0.0; // seconds
+    double swerveSeconds = 0.0; // wall time spent inside top-level Swerve calls
+    uint64_t topLevelCalls = 0;
+    uint64_t executedInstructions = 0; // running total, used to cost each call
+    std::map<CallerStack, CallerCost> callers;
+};
+
+BlockProfile* profile; // null unless CKZ_ARM_PROFILE is set
+
+double NowSeconds()
+{
+    LARGE_INTEGER frequency;
+    LARGE_INTEGER counter;
+    QueryPerformanceFrequency(&frequency);
+    QueryPerformanceCounter(&counter);
+    return static_cast<double>(counter.QuadPart) / static_cast<double>(frequency.QuadPart);
+}
+
+/** True for ARM-mode VFP and NEON instructions, the ones QEMU runs through softfloat helpers. */
+bool IsFloatInstruction(uint32_t instruction)
+{
+    const uint32_t condition = instruction >> 28;
+    if (condition == 0xf) {
+        // NEON data processing (0xf2/0xf3) and element load/store (0xf4).
+        const uint32_t top = instruction >> 24;
+        return top == 0xf2 || top == 0xf3 || top == 0xf4;
+    }
+    // Coprocessor space (bits 27..25 = 110 or 111) using coprocessor 10 or 11.
+    const uint32_t group = (instruction >> 25) & 7;
+    const uint32_t coprocessor = (instruction >> 8) & 0xe;
+    return (group == 6 || group == 7) && coprocessor == 0xa;
+}
+
+void CountBlock(uc_engine*, uint64_t address, uint32_t size, void*)
+{
+    if (!profile->recording) {
+        return;
+    }
+    const size_t index = static_cast<size_t>(address - CodeStart) / 4;
+    if (index >= CodeWords) {
+        return;
+    }
+    if (profile->instructions[index] == 0) {
+        // First time this block runs: classify its instructions once.
+        const auto* words = static_cast<const uint32_t*>(ResolvePointer(static_cast<uint32_t>(address)));
+        const uint32_t count = size / 4;
+        uint32_t floats = 0;
+        for (uint32_t offset = 0; offset < count; offset++) {
+            if (IsFloatInstruction(words[offset])) {
+                floats++;
+            }
+        }
+        profile->instructions[index] = count;
+        profile->floatInstructions[index] = floats;
+    }
+    profile->hits[index]++;
+    profile->executedInstructions += profile->instructions[index];
+}
+
+/** Write the native callers of Swerve, costliest first, to arm_callers.txt. */
+void WriteCallers()
+{
+    std::vector<std::pair<CallerStack, CallerCost>> sorted(profile->callers.begin(), profile->callers.end());
+    std::sort(sorted.begin(), sorted.end(), [](const auto& left, const auto& right) {
+        return left.second.seconds > right.second.seconds;
+    });
+
+    const auto path = std::filesystem::u8path(SDL_GetBasePath()) / ProfileCallersFileName;
+    FILE* file = _wfopen(path.c_str(), L"w");
+    if (file == nullptr) {
+        fwprintf(stderr, L"Could not write ARM caller profile: %ls\n", path.c_str());
+        return;
+    }
+    fprintf(file, "# module_base %08x\n", reinterpret_cast<uint32_t>(GetModuleHandleW(nullptr)));
+    fprintf(file, "# seconds calls guest_instructions native_return_addresses...\n");
+    for (const auto& [stack, cost] : sorted) {
+        fprintf(file, "%.6f %llu %llu", cost.seconds, static_cast<unsigned long long>(cost.calls),
+                static_cast<unsigned long long>(cost.instructions));
+        for (uint32_t address : stack) {
+            if (address != 0) {
+                fprintf(file, " %08x", address);
+            }
+        }
+        fprintf(file, "\n");
+    }
+    fclose(file);
+    fwprintf(stderr, L"ARM caller profile written: %ls (%zu stacks)\n", path.c_str(), sorted.size());
+}
+
+/** Write every executed block, hottest first, to arm_profile.txt next to the executable. */
+void WriteProfile(double recordedSeconds)
+{
+    std::vector<size_t> executed;
+    for (size_t index = 0; index < CodeWords; index++) {
+        if (profile->hits[index] != 0) {
+            executed.push_back(index);
+        }
+    }
+    std::sort(executed.begin(), executed.end(), [](size_t left, size_t right) {
+        return profile->hits[left] * profile->instructions[left] > profile->hits[right] * profile->instructions[right];
+    });
+
+    const auto path = std::filesystem::u8path(SDL_GetBasePath()) / ProfileFileName;
+    FILE* file = _wfopen(path.c_str(), L"w");
+    if (file == nullptr) {
+        fwprintf(stderr, L"Could not write ARM profile: %ls\n", path.c_str());
+        return;
+    }
+    fprintf(file, "# seconds %.3f swerve_seconds %.3f top_level_calls %llu\n", recordedSeconds,
+            profile->swerveSeconds, static_cast<unsigned long long>(profile->topLevelCalls));
+    fprintf(file, "# address hits instructions float_instructions (original address = address - %08x)\n",
+            GuestOffset);
+    for (size_t index : executed) {
+        const uint32_t address = CodeStart + static_cast<uint32_t>(index) * 4;
+        fprintf(file, "%08x %llu %u %u\n", address, static_cast<unsigned long long>(profile->hits[index]),
+                profile->instructions[index], profile->floatInstructions[index]);
+    }
+    fclose(file);
+    fwprintf(stderr, L"ARM profile written: %ls (%zu blocks)\n", path.c_str(), executed.size());
+}
 
 void Check(uc_err status, const char* operation)
 {
@@ -197,12 +362,56 @@ bool Initialize()
     for (uint32_t& instruction : trapInstructions) {
         instruction = 0xe12fff1e; // bx lr; trap dispatch normally stops before this executes.
     }
+    static_assert(ImportCount * 4 <= GuestStubBase - TrapBase, "import slots overlap the guest stubs");
+    static_assert(sizeof(GuestImports) / sizeof(GuestImports[0]) * GuestImportBytes <= TrapBase + PageSize - GuestStubBase,
+                  "guest stubs do not fit in the trap page");
+    // Imports with a guest replacement branch to it instead of trapping.
+    bool runsInGuest[ImportCount] = {};
+    uint32_t stubAddress = GuestStubBase;
+    for (const GuestImport& replacement : GuestImports) {
+        for (size_t index = 1; index < ImportCount; index++) {
+            if (strcmp(ImportNames[index], replacement.name) != 0) {
+                continue;
+            }
+            const uint32_t slot = TrapBase + static_cast<uint32_t>(index) * 4;
+            const uint32_t offset = (stubAddress - (slot + 8)) >> 2;
+            trapInstructions[index] = 0xea000000 | (offset & 0x00ffffff); // b stub
+            memcpy(&trapInstructions[(stubAddress - TrapBase) / 4], replacement.code, GuestImportBytes);
+            runsInGuest[index] = true;
+            stubAddress += GuestImportBytes;
+            fprintf(stderr, "Swerve import %s runs in the guest\n", replacement.name);
+        }
+    }
     Check(uc_mem_write(engine, TrapBase, trapInstructions, sizeof(trapInstructions)), "write import traps");
+    // One trap hook per run of consecutive trapping slots, so guest replacements stay hook-free.
     uc_hook hook;
-    Check(uc_hook_add(engine, &hook, UC_HOOK_CODE, reinterpret_cast<void*>(Trap), nullptr,
-                      TrapBase + 4, TrapBase + PageSize - 1), "hook imports");
+    size_t runStart = 0;
+    for (size_t index = 1; index <= ImportCount; index++) {
+        bool traps = false;
+        if (index < ImportCount && !runsInGuest[index]) {
+            traps = true;
+        }
+        if (traps && runStart == 0) {
+            runStart = index;
+        }
+        if (!traps && runStart != 0) {
+            Check(uc_hook_add(engine, &hook, UC_HOOK_CODE, reinterpret_cast<void*>(Trap), nullptr,
+                              TrapBase + runStart * 4, TrapBase + index * 4 - 1), "hook imports");
+            runStart = 0;
+        }
+    }
     Check(uc_hook_add(engine, &hook, UC_HOOK_MEM_UNMAPPED, reinterpret_cast<void*>(MapHostPage), nullptr,
                       1, 0), "hook shared memory");
+    if (SDL_getenv(ProfileVariable) != nullptr) {
+        // The block hook slows emulation down, so it is only installed on request.
+        profile = new BlockProfile();
+        profile->hits.resize(CodeWords);
+        profile->instructions.resize(CodeWords);
+        profile->floatInstructions.resize(CodeWords);
+        Check(uc_hook_add(engine, &hook, UC_HOOK_BLOCK, reinterpret_cast<void*>(CountBlock), nullptr,
+                          CodeStart, CodeEnd - 1), "hook profile");
+        fprintf(stderr, "Swerve ARM profiler ready: press F8 to start and stop recording\n");
+    }
     Write(UC_ARM_REG_C1_C0_2, 0x00f00000);
     Write(UC_ARM_REG_FPEXC, 0x40000000);
     fprintf(stderr, "Swerve ARM initialized (%zu imports)\n", ImportCount - 1);
@@ -312,6 +521,22 @@ uint32_t Call(uint32_t entry, const uint32_t* arguments, size_t count)
         return 0;
     }
 
+    // Only the outermost call is timed; nested calls are already inside its time.
+    const bool timed = profile != nullptr && profile->recording && activeFrame == nullptr;
+    double callStart = 0.0;
+    uint64_t instructionsStart = 0;
+    CallerStack caller = {};
+    if (timed) {
+        void* frames[ProfileCallerFrames] = {};
+        CaptureStackBackTrace(1, ProfileCallerFrames, frames, nullptr);
+        for (size_t index = 0; index < ProfileCallerFrames; index++) {
+            caller[index] = reinterpret_cast<uint32_t>(frames[index]);
+        }
+        instructionsStart = profile->executedInstructions;
+        callStart = NowSeconds();
+        profile->topLevelCalls++;
+    }
+
     Frame frame = { activeFrame, {}, nullptr, entry };
     uint32_t stackPointer = stackTop;
     if (activeFrame != nullptr) {
@@ -370,7 +595,39 @@ uint32_t Call(uint32_t entry, const uint32_t* arguments, size_t count)
         Check(uc_context_restore(engine, frame.parentContext), "restore caller");
         uc_context_free(frame.parentContext);
     }
+    if (timed) {
+        const double seconds = NowSeconds() - callStart;
+        profile->swerveSeconds += seconds;
+        CallerCost& cost = profile->callers[caller];
+        cost.calls++;
+        cost.seconds += seconds;
+        cost.instructions += profile->executedInstructions - instructionsStart;
+    }
     return result;
+}
+
+void ToggleProfile()
+{
+    if (profile == nullptr) {
+        fprintf(stderr, "ARM profiler is off; set %s=1 before starting the game\n", ProfileVariable);
+        return;
+    }
+    if (!profile->recording) {
+        std::fill(profile->hits.begin(), profile->hits.end(), 0);
+        profile->swerveSeconds = 0.0;
+        profile->topLevelCalls = 0;
+        profile->callers.clear();
+        profile->recordStart = NowSeconds();
+        profile->recording = true;
+        fprintf(stderr, "ARM profile recording started\n");
+        return;
+    }
+    profile->recording = false;
+    const double recordedSeconds = NowSeconds() - profile->recordStart;
+    fprintf(stderr, "ARM profile recording stopped: %.1f s, %.1f s inside Swerve\n", recordedSeconds,
+            profile->swerveSeconds);
+    WriteProfile(recordedSeconds);
+    WriteCallers();
 }
 
 } // namespace ckz::arm
