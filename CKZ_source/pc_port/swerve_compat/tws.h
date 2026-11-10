@@ -85,7 +85,7 @@ public:  // added by b051x
     void VirtualSlot0c() { return ckz::arm::Method<void>(this, 3); }  // added by b051x
     int get(int count, float* matrix) { return ckz::arm::Method<int>(this, 4, count, matrix); }  // 0x10  // added by b051x
     int set(int count, const float* matrix) { return ckz::arm::Method<int>(this, 5, count, matrix); }  // 0x14  // changed by b047x (was VirtualSlot14)
-    int multiply(ITransformInterface* transform) { return ckz::arm::Method<int>(this, 6, transform); }  // added by b051x (was VirtualSlot18; Ballistics uses 0x18)
+    int multiply(ITransformInterface* transform) { return ckz::arm::Method<int>(this, 6, transform); }  // added by b051x (was VirtualSlot18; Ballistics uses 0x18)  // PORT: semantics are M3G Transform.set(Transform), this = transform (a copy), probed on the ARM backend
     int setIdentity() { return ckz::arm::Method<int>(this, 7); }  // 0x1c  // changed by b048 (was VirtualSlot1c)
     int invert() { return ckz::arm::Method<int>(this, 8); }  // changed by b049 (was VirtualSlot20)  // added by b051x
     int postMultiply(ITransformInterface* transform) { return ckz::arm::Method<int>(this, 9, transform); }  // 0x24  // changed by b055x (was VirtualSlot24)

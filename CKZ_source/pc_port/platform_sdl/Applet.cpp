@@ -1,6 +1,8 @@
 // Bridge SDL lifecycle and pointer events to the original Glu applet.
 #include "Host.h"
+#include "DebugTools.h"
 #include "../swerve_compat/ArmCall.h"
+#include "../m3g_platform/include/M3gLoadTest.h"
 #include <stdio.h>
 #include <wchar.h>
 #include <string>
@@ -135,13 +137,21 @@ int RunApplet()
                 SetFireHeld(applet, false);
                 break;
             case SDL_EVENT_KEY_DOWN:
-                if (!event.key.repeat && event.key.key == SDLK_F8) {
+                if (!event.key.repeat && HandleDebugKey(applet, event.key.key, true)) {
+                    // Debug keys (CKZ_DEBUG_KEYS) for automated checks.
+                } else if (!event.key.repeat && event.key.key == SDLK_F8) {
                     // Debug: start or stop the Swerve hot-spot profiler.
                     ckz::arm::ToggleProfile();
+                } else if (!event.key.repeat && event.key.key == SDLK_F9) {
+                    // Debug: dump the next game frame.
+                    ckz::RequestFrameDump();
                 } else if (!event.key.repeat) {
                     HandleKeyDown(applet, event.key.key);
                     HandleCheatKey(event.key.key);
                 }
+                break;
+            case SDL_EVENT_KEY_UP:
+                HandleDebugKey(applet, event.key.key, false);
                 break;
             case SDL_EVENT_MOUSE_WHEEL:
                 AdjustScopeZoom(event.wheel.y);
@@ -203,6 +213,9 @@ int RunApplet()
                 lookY = 0.0f;
             }
             applet.HandleTimer();
+            UpdateAutoPlay();
+            UpdatePickTest();
+            UpdateUnitCountLog();
             SDL_Delay(1);
         }
     }
@@ -311,9 +324,21 @@ int wmain(int argc, wchar_t** argv)
         SDL_Quit();
         return 1;
     }
-    SDL_GL_SetSwapInterval(1);
+    // CKZ_NO_VSYNC measures the frame rate the game can reach without waiting for the display.
+    if (SDL_getenv("CKZ_NO_VSYNC") != nullptr) {
+        SDL_GL_SetSwapInterval(0);
+    } else {
+        SDL_GL_SetSwapInterval(1);
+    }
     ckz::ConfigureDesktopGl();
-    const int result = RunApplet();
+    int result = 0;
+    const char* m3gTestFolder = SDL_getenv(ckz::m3g::LoadTestVariable);
+    if (m3gTestFolder != nullptr) {
+        // Native M3G engine check (PORT_PLAN.md, P2 / M0) instead of the game.
+        result = ckz::m3g::RunLoadTest(m3gTestFolder);
+    } else {
+        result = RunApplet();
+    }
     SDL_GL_DestroyContext(ckz::context);
     SDL_DestroyWindow(ckz::window);
     SDL_Quit();

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nokia M3G core (m3gcore, EPL-1.0) plus the CKZ desktop platform layer: the native M3G engine
+     that replaces the emulated Swerve core (PORT_PLAN.md, P2). -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{D6456C8A-7BCE-494A-9361-835C1CBFA89F}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>m3gcore</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '18.0'">v145</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)' == '17.0'">v143</PlatformToolset>
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="Win32.props" />
+  <PropertyGroup>
+    <OutDir>$(IntDir)</OutDir>
+    <CkzM3g>$(CkzThirdParty)\m3gcore\</CkzM3g>
+    <CkzM3gPlatform>$(CkzPort)m3g_platform\</CkzM3gPlatform>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <!-- M3G_TARGET_WIN32 selects m3gcore's generic code paths; KHRONOS_STATIC matches the game's GLES shim.
+           _CRT_STDIO_ISO_WIDE_SPECIFIERS must match the game (the linker checks it). -->
+      <PreprocessorDefinitions>M3G_TARGET_WIN32;NDEBUG;WIN32;WIN32_LEAN_AND_MEAN;NOMINMAX;_CRT_SECURE_NO_WARNINGS;_CRT_STDIO_ISO_WIDE_SPECIFIERS;KHRONOS_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(CkzM3g)inc;$(CkzM3gPlatform)include;$(CkzThirdParty)\gl-include;$(CkzRoot)CKZ_source\packages\platformglu\src\zlib\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+    </ClCompile>
+    <Lib>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <!-- m3g_core.c includes every other m3gcore .c file (single translation unit). -->
+    <!-- m3g_core.c (the unity build of m3gcore) is compiled through M3gCkzCore.c, which adds the CKZ extensions. -->
+    <ClCompile Include="..\CKZ_source\pc_port\m3g_platform\M3gCkzCore.c" />
+    <ClCompile Include="..\CKZ_source\pc_port\m3g_platform\CkzEgl.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\m3g_platform\M3gPlatform.cpp" />
+    <ClInclude Include="..\CKZ_source\pc_port\m3g_platform\include\CkzEgl.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\m3g_platform\include\M3gCkzExtensions.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\m3g_platform\include\EGL\egl.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

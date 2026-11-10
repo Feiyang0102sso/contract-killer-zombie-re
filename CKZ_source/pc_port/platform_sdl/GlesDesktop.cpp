@@ -85,6 +85,7 @@ extern "C" {
 void GL_APIENTRY glClearDepth(double depth);
 void GL_APIENTRY glDepthRange(double nearDepth, double farDepth);
 void GL_APIENTRY glTexEnvi(GLenum target, GLenum name, GLint value);
+void GL_APIENTRY glOrtho(double left, double right, double bottom, double top, double nearPlane, double farPlane);
 void GL_APIENTRY glCompressedTexImage2D(GLenum target, GLint level, GLenum format, GLsizei width,
                                         GLsizei height, GLint border, GLsizei size, const void* data)
 {
@@ -158,6 +159,18 @@ void GL_APIENTRY glFogxv(GLenum name, const GLfixed* values)
     }
 }
 void GL_APIENTRY glLightModelx(GLenum name, GLfixed value) { glLightModelf(name, Fixed(value)); }
+// Fixed-point calls of the native M3G engine (m3gcore).
+void GL_APIENTRY glClearColorx(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha)
+{
+    glClearColor(Fixed(red), Fixed(green), Fixed(blue), Fixed(alpha));
+}
+void GL_APIENTRY glClearDepthx(GLfixed depth) { glClearDepth(Fixed(depth)); }
+void GL_APIENTRY glOrthox(GLfixed left, GLfixed right, GLfixed bottom, GLfixed top, GLfixed nearPlane, GLfixed farPlane)
+{
+    glOrtho(Fixed(left), Fixed(right), Fixed(bottom), Fixed(top), Fixed(nearPlane), Fixed(farPlane));
+}
+// Texture parameters are enums (filters, wrap modes); GLES passes them unscaled.
+void GL_APIENTRY glTexParameterx(GLenum target, GLenum name, GLfixed value) { glTexParameteri(target, name, value); }
 void GL_APIENTRY glTexEnvx(GLenum target, GLenum name, GLfixed value)
 {
     if (name == GL_RGB_SCALE || name == GL_ALPHA_SCALE) {

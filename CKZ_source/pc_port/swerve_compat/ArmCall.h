@@ -41,12 +41,21 @@ Result Invoke(uint32_t entry, Arguments... arguments)
     }
 }
 
+/**
+ * Call virtual slot `slot` of a runtime object. Emulated Swerve objects hold ARM code addresses
+ * in their table; native backend objects (pc_port/swerve_native) hold host functions that take
+ * the object as their first argument.
+ */
 template<class Result, class... Arguments>
 Result Method(const void* object, size_t slot, Arguments... arguments)
 {
     const uint32_t tableAddress = *static_cast<const uint32_t*>(object);
     const auto* table = static_cast<const uint32_t*>(ResolvePointer(tableAddress));
-    return Invoke<Result>(table[slot], object, arguments...);
+    const uint32_t entry = table[slot];
+    if (IsCode(entry)) {
+        return Invoke<Result>(entry, object, arguments...);
+    }
+    return reinterpret_cast<Result (*)(const void*, Arguments...)>(entry)(object, arguments...);
 }
 
 template<class Signature>

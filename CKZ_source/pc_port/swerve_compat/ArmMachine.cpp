@@ -3,6 +3,7 @@
 #include "ArmImports.h"
 #include <SwerveApi.h>
 #include "../platform_sdl/Host.h"
+#include "../swerve_native/NativeBackend.h"
 #include <windows.h>
 #include <unicorn/unicorn.h>
 #include <unicorn/arm.h>
@@ -634,6 +635,14 @@ void ToggleProfile()
 
 extern "C" int swvNew(ISwerve** swerve)
 {
+    // Backend switch (PORT_PLAN.md, P2): the native m3gcore runtime by default, the emulated
+    // original only when CKZ_SWERVE=arm.
+    const char* backend = SDL_getenv(ckz::native::BackendVariable);
+    bool useArm = backend != nullptr && strcmp(backend, ckz::native::BackendArm) == 0;
+    if (!useArm) {
+        return ckz::native::CreateSwerve(swerve);
+    }
+    fprintf(stderr, "Swerve backend: ARM emulation (%s=%s)\n", ckz::native::BackendVariable, backend);
     if (ckz::arm::engine == nullptr && !ckz::arm::Initialize()) {
         return 1;
     }

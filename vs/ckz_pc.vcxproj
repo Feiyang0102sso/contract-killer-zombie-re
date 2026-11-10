@@ -52,6 +52,7 @@
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Applet.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Audio.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Cheat.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\DebugTools.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Controls.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Core.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Files.cpp" />
@@ -64,6 +65,15 @@
     <ClCompile Include="..\CKZ_source\pc_port\stubs\OfflinePlatform.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\swerve_compat\ArmImports.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\swerve_compat\ArmMachine.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\m3g_platform\M3gLoadTest.cpp">
+      <AdditionalIncludeDirectories>$(CkzThirdParty)\m3gcore\inc;$(CkzPort)m3g_platform\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="..\CKZ_source\pc_port\swerve_native\NativeRuntime.cpp;..\CKZ_source\pc_port\swerve_native\NativeScene.cpp;..\CKZ_source\pc_port\swerve_native\NativeTransform.cpp;..\CKZ_source\pc_port\swerve_native\NativeLoader.cpp;..\CKZ_source\pc_port\swerve_native\NativeImage.cpp;..\CKZ_source\pc_port\swerve_native\NativeGraphics3D.cpp;..\CKZ_source\pc_port\swerve_native\SwerveExtendedM3g.cpp">
+      <AdditionalIncludeDirectories>$(CkzThirdParty)\m3gcore\inc;$(CkzPort)m3g_platform\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ObjectFileName>$(IntDir)swerve_native\</ObjectFileName>
+    </ClCompile>
+    <ClInclude Include="..\CKZ_source\pc_port\swerve_native\NativeBackend.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\swerve_native\NativeRuntime.h" />
     <ClCompile Include="..\CKZ_source\packages\platformglu\src\cocoa\src\NPMalloc.cpp" />
     <ClCompile Include="..\CKZ_source\packages\platformglu\src\cocoa\src\NPMem.cpp" />
     <ClCompile Include="$(CkzThirdParty)\powervr\PVRTDecompress.cpp">
@@ -79,6 +89,7 @@
     <ClInclude Include="..\CKZ_source\pc_port\include\strings.h" />
     <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\AssetPaths.h" />
     <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\Cheat.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\DebugTools.h" />
     <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\Host.h" />
     <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\KeyBindings.h" />
     <ClInclude Include="..\CKZ_source\pc_port\swerve_compat\ArmCall.h" />
@@ -98,6 +109,9 @@
     </ProjectReference>
     <ProjectReference Include="unicorn_arm.vcxproj">
       <Project>{67EC55D4-5160-4284-A1D2-AD095E4F1FE2}</Project>
+    </ProjectReference>
+    <ProjectReference Include="m3gcore.vcxproj">
+      <Project>{D6456C8A-7BCE-494A-9361-835C1CBFA89F}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

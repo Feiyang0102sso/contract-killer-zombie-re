@@ -2,7 +2,19 @@
 
 > 分支：`pc-port`（`ckz_repo` 的 worktree）
 > 起点：匹配仓库检查点 `2026-11-08-b176-family-a`（自家 71.01% 逐字节一致，可玩闭包 100%，已在 iPad 实机跑通）
-> 状态：**草案，待审核**
+> 状态：**P3、P4 已达成（PC 可玩）；P2 原生 M3G 引擎已成为默认后端（M0、M1、M3、M4、M5 完成，M2 对拍工具未单独做）**
+
+## 0. 当前进度（2026-11-09）
+
+- PC 32 位已可玩：游戏和平台层是原生 x86，只有 Swerve 核心（`swerve-arm.bin`）在 Unicorn 里跑，见 `CKZ_source/pc_port/swerve_compat/ArmMachine.cpp`。
+- Unicorn 方案的性能上限已经摸清，**决定换成原生 M3G 引擎**（P2）。依据：
+  - 已做的优化：unicorn `notdirty_write` 补丁、除法改为在 guest 内执行。升级界面的加载卡顿从约 1.5 秒降到 0.4 秒。
+  - 剩下的瓶颈是结构性的：僵尸多时每帧约 1900 次 API 调用和约 3100 次导入陷阱，再加上每帧约 1 万个顶点的 CPU 蒙皮。实测僵尸多时约 30 帧，清空后 60–70 帧。
+  - 试过把 setjmp 放进 guest、用 unicorn 多出口代替陷阱 hook，都没有显著收益，已撤回。
+  - 目标是 165 帧（每帧约 6ms），只能去掉模拟器。
+- 调试工具：设置环境变量 `CKZ_ARM_PROFILE=1` 启动，按 F8 开始和停止录制，会写出 `arm_profile.txt`（guest 基本块热点）和 `arm_callers.txt`（按游戏侧调用栈统计的 Swerve 耗时）。
+- **2026-11-09 夜更新**：原生 m3gcore 后端已设为默认（`CKZ_SWERVE=arm` 切回模拟版）。修好了命中特效白色巨型三角形和爆头无伤害两个 bug；生存模式 15 只僵尸时稳定 165 帧（垂直同步上限），主线程 CPU 约 1.2ms/帧。详见 P2 各里程碑。
+- 自动化测试设施（都靠环境变量开启，见 `pc_port/platform_sdl/DebugTools.h`）：`CKZ_AUTOPLAY=survival` 自动开始生存模式；`CKZ_DEBUG_KEYS=1` 后 F10 开火、方向键转视角、F11 朝最近的头开一枪、F7 瞄准（鼠标被捕获时 SDL 读 raw input，外部注入的鼠标消息无效，键盘消息有效）；`CKZ_PICK_TEST=1` 每 1.5 秒对屏幕内每个僵尸的头部做拾取自检；`CKZ_FPS_LOG=1` 每秒打印帧率、工作耗时、主线程 CPU 时间和存活僵尸数；F9 导出下一帧。
 
 ## 1. 目标与非目标
 
@@ -156,51 +168,125 @@
 
 **完成标准**：除平台层和 Swerve 以外，所有 C++ 编译单元在 Win32 下编译通过；链接缺口清单生成；R7、R3 有结论。
 
-### P1 Swerve 对拍台（M）
+### P1 Swerve 对拍台（已有雏形，并入 P2 的 M2）
 
-- 用 Unicorn 加载原版 `zombsniper` 的 Swerve 段（或 `swerve_core` 按原地址），从 `_swvNew` 进入。
-- 接管导入：gl* 记录参数并返回合理值，libc 和 `malij297_*` 回调用宿主实现。
-- 调用约定按 iOS armv7（softfp，r9 易失），用宿主侧的小桩函数调用 `tws.h` 里的接口。
-- 输入：119 个 M3G 资源 + 游戏的典型调用序列（加载、`animate(t)`、取变换、拾取、渲染）。
-- 输出：结构化 JSON 记录，包括节点树、每个节点的世界矩阵、动画采样值、拾取结果、GL 调用流。
+Unicorn 跑原版 Swerve 的部分已经在游戏里用着（`ArmMachine.cpp`：按原地址加载 `swerve-arm.bin`，从 `_swvNew` 进入，导入走陷阱交给宿主实现）。剩下的工作是录制基准和对比，放到 P2 的 M2 里做。
 
-**完成标准**：119 个资源全部跑通加载和一帧渲染，生成基准数据集。
+### P2 原生 M3G 引擎替换（L，进行中）
 
-> 只有这一步需要碰 `.s`，而且只需要知道它的导入表和调用约定，不需要读懂内部逻辑。
+**目标**：去掉 Unicorn，Swerve 由原生的开源 M3G 核心加适配层取代，行为以原版 Swerve 为准对拍。
 
-### P2 swerve_compat（L）
+**选型结论（P2a，已完成）**
 
-**优先采用开源 M3G 实现**，自己写只做兜底。
+| 候选 | 许可 | 情况 | 结论 |
+| --- | --- | --- | --- |
+| [J2ME-Loader](https://github.com/nikita36078/J2ME-Loader) 里的 m3gcore 移植（`app/src/main/cpp/m3g/`） | 文件保留 Nokia 的 EPL-1.0 头 | Nokia 官方 M3G 1.1 的 C 核心，约 3.8 万行，含加载、动画混合、SkinnedMesh、拾取；已去掉 Symbian 依赖，在 Android 上跑过大量真实游戏，2026 年仍在修 bug | **采用** |
+| [SymbianSource 官方镜像](https://github.com/SymbianSource/oss.FCL.sf.os.graphics) `m3g/m3gcore11/` | EPL-1.0 | 同一份代码，没有移植层 | 作为上游原始实现，用来比对 |
+| [Desktop-M3G](https://github.com/BaalNetbek/desktop-m3g) | MIT | C++，缺 bindTarget 和立即模式，真实游戏验证少 | 备选，或用来交叉校验 |
+| FreeJ2ME-Plus、KEmulator | GPL / 不明 | Java 实现 | 只作行为参考，不搬代码 |
 
-**P2a 选型评估（S）**
+EPL-1.0 是文件级弱 copyleft：我们改过的 m3gcore 文件要以 EPL 提供源码并保留版权头；适配层和游戏代码不受影响。
 
-| 候选 | 说明 | 待核实 |
-| --- | --- | --- |
-| m3gcore | Nokia M3G 1.1 的 C 语言核心实现，经 Symbian Foundation 开源 | 许可证、能否在 GLES1.1 上编译、仓库是否完整 |
-| Desktop-M3G | C++ 的 M3G 1.1 实现 | 同上，以及完成度 |
-| 其他（XMM3G、Symbian Java runtime 里的 M3G JNI 源码） | 备选 | 同上 |
+**结构**
 
-评估标准，按顺序筛选：
-1. 许可证允许本项目使用和分发；
-2. 能编进 `Win32` 工程；
-3. 能加载全部 119 个 M3G 文件；
-4. 抽样对拍：节点树、矩阵、动画采样与 P1 基准一致。
+```text
+游戏代码（不改）
+   │  tws.h / SwerveApi.h（PC 移植里的副本，唯一的接口边界）
+   ├── arm 后端：Unicorn + 原版 Swerve（保留，用来对拍和兜底）
+   └── native 后端：适配层 → m3gcore（C）→ GLES1 shim → 桌面 GL
+```
 
-**P2b 适配（M）**
+后端运行时可切换：默认是 native；环境变量 `CKZ_SWERVE=arm` 切回原版模拟。同一个游戏、同一份存档可以直接做 A/B。
 
-- 选定的核心放进 `third_party/`，原则上不改；必须改时单独成补丁并记录。
-- 在 `port/swerve_compat/` 写 `tws.h` 的 72 个方法，转发到 M3G 核心。
-- 错误码、对象生命周期（引用计数）、userID 查找等按原版接口语义对齐。
+#### M0 落地核心（S）—— 已完成（2026-11-09）
 
-**P2c 对拍收敛（M）**
+> 结果：m3gcore 取自 J2ME-Loader `afffdde`，原样放进 `3rd_party/m3gcore/`，没有改动。平台层是自己写的，在 `pc_port/m3g_platform/`（假 EGL、zlib inflate、日志），另在 GLES shim 里补了 4 个定点函数。`vs/m3gcore.vcxproj` 编成静态库，链进 `ckz_pc`。
+> 用 `CKZ_M3G_LOADTEST` 测试原生加载 `.big` 里的 **119 个 M3G：全部成功**。根对象为 114 个 World、5 个 Group，总计 269MB，耗时 3.1 秒。细节见 `3rd_party/README.md`。
 
-- 按对象类别逐项对拍，记录进度表（对象类别 × 一致/不一致）。
-- 浮点比较带容差。GL 调用流先比"语义"（状态、绘制次数、顶点数据），不要求调用顺序完全一致。
-- 出现不一致时，**只读 `.s` 里对应的那个函数**，确认原版行为后改适配层或打补丁（局部反编译）。
+- 从 J2ME-Loader 取 m3g 源码，钉在一个固定提交，放进 `CKZ_source/pc_port/3rd_party/m3gcore/`，在 `3rd_party/README.md` 记录来源、提交和许可。
+- 和 SymbianSource 官方镜像逐文件比对，列出 J2ME-Loader 改过的地方及原因。
+- 清点平台层依赖：EGL、zlib、日志和断言、定点 GL 函数（`glTexParameterx`、`glOrthox` 等）。
+  - EGL 换成「使用外部已激活的 GL 上下文」。
+  - zlib 改用游戏自带的那份。
+  - shim 里补上缺的定点函数。
+- 新建 `vs/m3gcore.vcxproj`，编成 Win32 静态库。
+- 写一个最小加载器测试：用原生 m3gcore 加载 `.big` 里全部 119 个 M3G。
 
-**兜底**：如果没有候选通过 P2a，就按 JSR-184 规范自己实现 M3G 1.0 子集，对拍流程不变。
+**完成标准**：静态库编译通过；119 个文件全部加载成功；平台层改动清单写进 `3rd_party/README.md`。
 
-**完成标准**：119 个资源的节点树、矩阵、动画采样、拾取结果与基准一致（在容差内）；渲染截图与基准的 GL 回放截图一致。
+#### M1 后端抽象（S～M）
+
+- 把 `tws.h` / `SwerveApi.h` 里的 `ckz::arm::Method(...)` 调用改成走一层可切换的实现，arm 后端的行为保持不变。
+- 统计游戏实际调用的方法（原估计 72 个），列成适配清单，后续 M3 按这张表推进。
+
+**完成标准**：默认走 arm 后端时，游戏表现和帧率与现在一致；适配清单完成。
+
+> 结果（已完成，做法与计划不同）：没有改 `tws.h` 的调用方式。原生对象和 ARM 对象一样，第一个字是函数表指针，游戏照旧按槽位调用；`ckz::arm::Method` 发现表项不是 guest 代码时直接调用宿主函数（self 作为第一个参数）。后端只在 `swvNew` 处选择一次（`ArmMachine.cpp`），**默认 native，`CKZ_SWERVE=arm` 走原版模拟**。适配清单就是 `swerve_native/Native*.cpp` 里各 `Fill*Slots` 的槽位表；未实现的槽位会打印 `Swerve native: <类> slot N is not implemented` 和调用栈。
+
+#### M2 对拍工具（M）
+
+- 独立的小程序 `ckz_m3g_compare`：对每个 M3G 分别用两个后端加载，然后导出并比较：
+  - 节点树、对象属性、userID；
+  - 若干时间点 `animate(t)` 后各节点的世界矩阵；
+  - 固定射线的拾取结果；
+  - 一帧离屏渲染的截图（逐像素差，带容差）。
+- 输出进度表：对象类别 × 一致/不一致。
+
+**完成标准**：能对 119 个文件输出差异报告。
+
+> 现状（未单独做）：改用「游戏内 A/B」：同一个 exe、同一份存档，分别用两个后端跑同一段注入脚本，对比 F9 导出的帧和日志；语义存疑的槽位直接在两个后端上用同样的参数探测（例如用非单位矩阵调用每个 Transform 槽位）。这种方式已经找出下面 M3/M4 列的全部语义差异。独立的逐文件对拍工具仍值得做，用来系统覆盖动画插值和拾取，留作后续。
+
+#### M3 native 后端（L）
+
+- 按适配清单实现：加载器、Graphics3D 的 bind/render/release、World/Camera/Light/Background、变换、动画、拾取、Image2D 与动态图像、离屏渲染。
+- 错误码、引用计数、对象生命周期、userID 查找按原接口语义对齐。原版用 setjmp/longjmp 模拟异常，适配层改为返回错误码。
+- m3gcore 原则上不改；必须改时单独成补丁，注释标 `CKZ:`，并在 README 登记。
+
+**完成标准**：M2 报告里各对象类别全部「一致」（容差内）。
+
+> 结果（游戏用到的槽位已全部实现）：代码在 `pc_port/swerve_native/`，平台层在 `pc_port/m3g_platform/`。m3gcore 源文件未修改，唯一需要内部结构的扩展放在 `m3g_platform/M3gCkzCore.c`（见 `3rd_party/README.md`）。和标准 M3G / m3gcore 不同、已在 ARM 后端核实的 Swerve 语义：
+>
+> | 位置 | Swerve 的实际语义 | 不处理的后果 |
+> | --- | --- | --- |
+> | Transformable 槽位 41（tws.h 名为 `getCompositeTransform`） | 只返回通用矩阵（M3G `getTransform`） | 武器相机转向错误 |
+> | Transformable 槽位 43 `setTransform` | 标准语义，但接受底行有 1e-9 级误差的矩阵 | m3gcore 拒绝，节点不动；适配层把接近 (0,0,0,1) 的底行归位 |
+> | Transform 槽位 6（tws.h 名为 `multiply`） | **`Transform.set(Transform)`，即拷贝**，不是乘法 | 粒子基矩阵被自乘，缩放平方，命中处出现铺满屏幕的白色三角形（bug A） |
+> | Transform 槽位 10 / 11 | `postRotate`（角度 + 轴）/ `postRotateQuat`（x, y, z, w） | —（与 m3gcore 一致，用非单位矩阵核实） |
+> | Transformable 槽位 33 | 朝向的四元数 | — |
+> | Group 槽位 83/84 `pick` | **拾取会进入 SkinnedMesh 的骨架**；m3gcore 只测蒙皮三角形 | 僵尸头部网格和头部命中球都挂在头骨上，爆头完全没有命中（bug B）。适配层在 m3gcore 拾取后补拾取所有可达骨架，取最近的命中 |
+> | Group 槽位 82 `removeChild` | 允许移除被 m3gcore 标为骨骼（`hasBones`）的节点；m3gcore 复制节点时会把该标志带给克隆体 | 斩首飞出的头颅（20% 概率）无法移除，永久留在场景里 |
+> | Swerve 扩展格式文件（文件头 `\xbbSWERVE\xab`，50 个） | 私有对象类型 25 是 PVRTC 贴图 | `SwerveExtendedM3g.cpp` 转成标准 Image2D |
+> | Graphics3D `BindTarget` / `ReleaseTarget` | 与游戏共用 GL 上下文 | 保存、恢复游戏的 GL 状态；`glClearDepthf(1)` |
+
+#### M4 游戏内收敛（M）
+
+- 用 native 后端跑完整流程：主菜单 → 地图 → 任务 → 结算 → 升级动画 → 存档读档。
+- 出现不一致时，**只读 `.s` 里对应的那个函数**，确认原版行为后修改适配层或给 m3gcore 打补丁。
+
+**完成标准**：主要场景（武器、僵尸动画与蒙皮、特效、天空盒、UI 里的 3D）与 arm 后端画面一致。
+
+> 结果（已完成，2026-11-09）：以下场景两个后端的 F9 帧逐张对比一致：主菜单与地图、地图上的升级动画（3D 僵尸头）、生存模式的武器/手部/僵尸/场景、机瞄与狙击镜、地面和墙面的命中特效（烟雾、碎屑、闪光）、爆头特效与 "Headshot!" 提示。头部拾取自检（`CKZ_PICK_TEST`）：原生修复前 0/50 命中头部，修复后与原版一样 100%。原生运行日志里已没有 m3gcore 报错和未实现槽位。
+> 未逐项核对：剧情任务全流程、结算后的存档读档（存档与后端无关）、Evelyn 等任务专属场景（前一轮已核对过武器、手部、僵尸、Evelyn、主相机）。
+
+#### M5 性能（S）
+
+- 实测僵尸多和清空两种场景的帧率。
+- 按热点优化，候选：蒙皮、渲染状态切换，必要时把蒙皮挪到 GPU。
+
+**完成标准**：僵尸多时稳定在 165 帧（每帧约 6ms）。
+
+> 结果（已达成，2026-11-09）：开垂直同步（165Hz 显示器），生存模式自动开局，`CKZ_FPS_LOG=1` 每秒记录：
+>
+> | 场景 | ARM 模拟（原版） | 原生 m3gcore |
+> | --- | --- | --- |
+> | 11–15 只僵尸 | 平均 34 帧，最低 31 帧，每帧约 30ms | 165 帧，主线程 CPU 约 1.2ms/帧 |
+> | 6–10 只僵尸 | 平均 112 帧，最低 39 帧 | 165 帧，主线程 CPU 约 1.2ms/帧（最多 2.3ms） |
+>
+> 原生后端被显示器刷新率封顶，CPU 余量约 5 倍，所以没有做额外优化。游戏中最长一帧 10–16ms（开局一次刷出 15 只僵尸时）；更长的停顿只出现在玩家死亡切到结算界面时（约 85ms）。
+
+**M5 之后**：native 后端设为默认，Unicorn 只留在对拍工具里，`swerve-arm.bin` 不再随游戏发布。
+
+> 进度：native 后端已设为默认（`swvNew`）。Unicorn 和 `swerve-arm.bin` 暂时仍随 exe 构建和发布，作为 `CKZ_SWERVE=arm` 的对照；等用户实测确认后再挪进独立的对拍工具。
 
 ### P3 SDL3 平台层（M，可与 P2 并行）
 
@@ -257,7 +343,9 @@
 | R5 | 原版依赖 iOS 特定行为（文件路径大小写、浮点精度、`char` 有无符号） | iOS 上 `char` 是有符号的，Android arm64 默认无符号，因此统一加 `-fsigned-char`；文件名大小写统一 |
 | R6 | 联网功能（gServe、Facebook）服务器早已下线 | 统一做空实现，不影响单机玩法 |
 | R7 | **Windows 的 `wchar_t` 是 2 字节**，原版和移动端是 4 字节；`sizeof(wchar_t)` 有 53 处，若资源里的文本按 4 字节存放并直接当 `wchar_t` 读，PC 版会出错 | P0 先查清文本的存放格式；需要时在读取边界做转换，或游戏内部统一用固定 4 字节的字符类型 |
-| R8 | 开源 M3G 实现的许可证不允许使用，或者缺少关键功能 | P2a 先核实；不通过就走兜底的自写方案 |
+| R8 | 开源 M3G 实现的许可证不允许使用，或者缺少关键功能 | P2a 已核实：m3gcore 为 EPL-1.0，可用；功能缺口在 M2 对拍中暴露 |
+| R9 | 游戏还通过 Swerve 处理非 M3G 内容：PNG/JPEG 图片、动态图像（`malij297_DynamicImage2D*`）、离屏渲染（`OffScreenImage*`），m3gcore 不一定覆盖 | M1 清点实际用量；缺的部分用游戏现有的解码代码和 FBO 补 |
+| R10 | m3gcore 的 EGL 层改成「使用外部上下文」的工作量是推测 | M0 验证 |
 
 ## 7. 决策记录
 
@@ -267,10 +355,13 @@
 | --- | --- |
 | Swerve 替换方式 | 优先采用开源 M3G 实现 + `tws.h` 适配，以原版对拍；不整体反编译 `.s`，只在对拍不一致时局部阅读 |
 | PC 32 位构建 | Visual Studio 解决方案（`Win32`），工具集默认 ClangCL |
+| 过渡方案（2026-11） | 先用 Unicorn 跑原版 Swerve 让 PC 版可玩；性能上限不够，不再继续优化模拟器 |
+| M3G 核心（2026-11-09） | 采用 J2ME-Loader 移植的 Nokia m3gcore（EPL-1.0），以 SymbianSource 官方镜像为上游对照；Desktop-M3G 作备选 |
+| 后端切换 | native 与 arm 两个后端并存，运行时切换，直到 M5 完成 |
 
 **待定**
 
 1. GLES1 后端：**ANGLE 全平台统一（推荐）**，还是各平台用系统原生 GLES1。
 2. 视频：第一版跳过，还是接解码库。
-3. 第三方库获取方式：git submodule，还是直接放进 `third_party/`。
+3. 第三方库获取方式：git submodule，还是直接放进 `third_party/`。（现状：都直接放进 `CKZ_source/pc_port/3rd_party/`）
 4. 平台工具集：ClangCL（推荐）还是 MSVC。

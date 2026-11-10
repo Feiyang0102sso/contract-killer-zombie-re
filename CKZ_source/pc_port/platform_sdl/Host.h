@@ -49,5 +49,7 @@ bool IsMissionInputActive();
 void TurnView(CApplet& applet, float mouseX, float mouseY);
 /** Press or release the HUD fire button. */
 void SetFireHeld(CApplet& applet, bool held);
+/** Debug (F9): write the next presented game frame to frame_<n>_<w>x<h>.rgba next to the executable. */
+void RequestFrameDump();
 
 } // namespace ckz

@@ -8,6 +8,8 @@ Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "ckz_game", "ckz_game.vcxpro
 EndProject
 Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "unicorn_arm", "unicorn_arm.vcxproj", "{67EC55D4-5160-4284-A1D2-AD095E4F1FE2}"
 EndProject
+Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "m3gcore", "m3gcore.vcxproj", "{D6456C8A-7BCE-494A-9361-835C1CBFA89F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Release|Win32 = Release|Win32
@@ -19,5 +21,7 @@ Global
 		{843D472A-4247-41B8-915E-4311D565D831}.Release|Win32.Build.0 = Release|Win32
 		{67EC55D4-5160-4284-A1D2-AD095E4F1FE2}.Release|Win32.ActiveCfg = Release|Win32
 		{67EC55D4-5160-4284-A1D2-AD095E4F1FE2}.Release|Win32.Build.0 = Release|Win32
+		{D6456C8A-7BCE-494A-9361-835C1CBFA89F}.Release|Win32.ActiveCfg = Release|Win32
+		{D6456C8A-7BCE-494A-9361-835C1CBFA89F}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 EndGlobal
