@@ -10,6 +10,8 @@ The goal is a **1:1 source reconstruction**: compiling the recovered source with
 
 Later fixes and ports are only worth doing on top of source that can be trusted to this degree.
 
+The PC remake built on this source is on the [`port_PC` branch](https://github.com/Feiyang0102sso/contract-killer-zombie-re/tree/port_PC).
+
 ## Compiler, SDK and third-party libraries
 
 The original binary carries no record of the compiler version. The versions below are inferred from per-function machine code comparison, the build paths in the debug map, and version strings inside the binary.

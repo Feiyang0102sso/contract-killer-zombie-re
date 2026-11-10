@@ -10,6 +10,8 @@
 
 只有源码具备极高的可信度，后续的修复和移植才有实际意义。
 
+基于这份源码的 PC 重制版见 [`port_PC` 分支](https://github.com/Feiyang0102sso/contract-killer-zombie-re/tree/port_PC)。
+
 ## 编译器、SDK 与第三方库
 
 原版二进制里没有编译器版本记录。下表的版本依据来自逐函数的机器码比对、调试映射里的构建路径，以及二进制内的版本字符串。
