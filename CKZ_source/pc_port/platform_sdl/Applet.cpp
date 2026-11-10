@@ -1,8 +1,12 @@
 // Bridge SDL lifecycle and pointer events to the original Glu applet.
 #include "Host.h"
+#include "Config.h"
 #include "DebugTools.h"
-#include "../swerve_compat/ArmCall.h"
-#include "../m3g_platform/include/M3gLoadTest.h"
+#include "Log.h"
+#ifdef CKZ_TESTS
+#include "../../../tests/M3gLoadTest.h"
+#include "../../../tests/TestTools.h"
+#endif
 #include <stdio.h>
 #include <wchar.h>
 #include <string>
@@ -89,6 +93,16 @@ namespace {
 
 using namespace ckz;
 
+/** True when the test build runs without a window (CKZ_HIDDEN); always false in the game build. */
+bool IsHiddenRun()
+{
+#ifdef CKZ_TESTS
+    return ckz::test::RunHidden();
+#else
+    return false;
+#endif
+}
+
 void QueueTouch(CApplet& applet, unsigned int type, unsigned int id, float x, float y, unsigned int taps)
 {
     int width = 0;
@@ -97,11 +111,12 @@ void QueueTouch(CApplet& applet, unsigned int type, unsigned int id, float x, fl
     if (width <= 0 || height <= 0) {
         return;
     }
-    const auto gameX = static_cast<unsigned int>(SDL_clamp(x * ckz::WindowWidth / width, 0.0f, ckz::WindowWidth - 1.0f));
-    const auto gameY = static_cast<unsigned int>(SDL_clamp(y * ckz::WindowHeight / height, 0.0f, ckz::WindowHeight - 1.0f));
-    if (type == TouchBegan && SDL_getenv("CKZ_INPUT_TRACE") != nullptr) {
-        fprintf(stderr, "Touch %u down at %u,%u (window %dx%d)\n", id, gameX, gameY, width, height);
-    }
+    // Map from the game picture, which may have black bars around it (GamePictureRect).
+    const SDL_Rect picture = GamePictureRect(width, height);
+    const float pictureX = (x - picture.x) * ckz::WindowWidth / picture.w;
+    const float pictureY = (y - picture.y) * ckz::WindowHeight / picture.h;
+    const auto gameX = static_cast<unsigned int>(SDL_clamp(pictureX, 0.0f, ckz::WindowWidth - 1.0f));
+    const auto gameY = static_cast<unsigned int>(SDL_clamp(pictureY, 0.0f, ckz::WindowHeight - 1.0f));
     applet.QueueSystemEvent(type, id, ((taps & 3) << 28) | gameX | (gameY << 14));
 }
 
@@ -137,21 +152,27 @@ int RunApplet()
                 SetFireHeld(applet, false);
                 break;
             case SDL_EVENT_KEY_DOWN:
-                if (!event.key.repeat && HandleDebugKey(applet, event.key.key, true)) {
-                    // Debug keys (CKZ_DEBUG_KEYS) for automated checks.
-                } else if (!event.key.repeat && event.key.key == SDLK_F8) {
-                    // Debug: start or stop the Swerve hot-spot profiler.
-                    ckz::arm::ToggleProfile();
-                } else if (!event.key.repeat && event.key.key == SDLK_F9) {
+                if (event.key.repeat) {
+                    break;
+                }
+#ifdef CKZ_TESTS
+                // Test keys for automated checks (tests/TestTools.h).
+                if (ckz::test::HandleTestKey(applet, event.key.key, true)) {
+                    break;
+                }
+#endif
+                if (event.key.key == SDLK_F9 && ckz::config.debugMode) {
                     // Debug: dump the next game frame.
                     ckz::RequestFrameDump();
-                } else if (!event.key.repeat) {
+                } else {
                     HandleKeyDown(applet, event.key.key);
                     HandleCheatKey(event.key.key);
                 }
                 break;
             case SDL_EVENT_KEY_UP:
-                HandleDebugKey(applet, event.key.key, false);
+#ifdef CKZ_TESTS
+                ckz::test::HandleTestKey(applet, event.key.key, false);
+#endif
                 break;
             case SDL_EVENT_MOUSE_WHEEL:
                 AdjustScopeZoom(event.wheel.y);
@@ -213,8 +234,10 @@ int RunApplet()
                 lookY = 0.0f;
             }
             applet.HandleTimer();
-            UpdateAutoPlay();
-            UpdatePickTest();
+#ifdef CKZ_TESTS
+            ckz::test::UpdateAutoPlay();
+            ckz::test::UpdatePickTest();
+#endif
             UpdateUnitCountLog();
             SDL_Delay(1);
         }
@@ -243,26 +266,84 @@ bool CheckRequiredFiles(const std::filesystem::path& assetsFolder, const std::fi
     if (report.empty()) {
         return true;
     }
-    // A double-clicked game loses its console at once, so also say it in a dialog.
-    if (SDL_getenv("CKZ_HIDDEN") == nullptr) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Contract Killer: Zombies", report.c_str(), nullptr);
+    // The game has no console unless DebugMode is on, so also say it in a dialog.
+    if (!IsHiddenRun()) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, ckz::config.title.c_str(), report.c_str(), nullptr);
     }
     return false;
 }
 
-} // namespace
+/** Create the game window (WindowWidth / WindowHeight / FullScreen / Title of the config) and its GL context. */
+bool CreateGameWindow()
+{
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+    SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL;
+    if (IsHiddenRun()) {
+        windowFlags |= SDL_WINDOW_HIDDEN;
+    }
+    int windowWidth = ckz::config.windowWidth;
+    int windowHeight = ckz::config.windowHeight;
+    if (ckz::config.fullScreen) {
+        // Borderless full screen at the desktop resolution; the window size is used when leaving it.
+        windowFlags |= SDL_WINDOW_FULLSCREEN;
+        fprintf(stderr, "Window: full screen\n");
+    } else {
+        // Use the configured window size, or the largest one of the same shape that fits the desktop.
+        SDL_Rect desktop;
+        if (SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &desktop)) {
+            const int freeHeight = desktop.h - ckz::TitleBarAllowance;
+            if (windowWidth > desktop.w || windowHeight > freeHeight) {
+                const float fitX = static_cast<float>(desktop.w) / windowWidth;
+                const float fitY = static_cast<float>(freeHeight) / windowHeight;
+                const float fit = SDL_min(fitX, fitY);
+                windowWidth = static_cast<int>(windowWidth * fit);
+                windowHeight = static_cast<int>(windowHeight * fit);
+            }
+            fprintf(stderr, "Window %dx%d (wanted %dx%d, desktop %dx%d)\n", windowWidth, windowHeight,
+                    ckz::config.windowWidth, ckz::config.windowHeight, desktop.w, desktop.h);
+        }
+    }
+    ckz::window = SDL_CreateWindow(ckz::config.title.c_str(), windowWidth, windowHeight, windowFlags);
+    if (ckz::window != nullptr) {
+        if (!ckz::config.fullScreen) {
+            // SDL centres the picture, which can push the title bar of a tall window above the screen.
+            int titleBarHeight = 0;
+            int windowX = 0;
+            int windowY = 0;
+            SDL_GetWindowBordersSize(ckz::window, &titleBarHeight, nullptr, nullptr, nullptr);
+            SDL_GetWindowPosition(ckz::window, &windowX, &windowY);
+            if (windowY - titleBarHeight < 0) {
+                SDL_SetWindowPosition(ckz::window, windowX, titleBarHeight);
+            }
+        }
+        ckz::context = SDL_GL_CreateContext(ckz::window);
+    }
+    if (ckz::context == nullptr) {
+        fprintf(stderr, "Could not create the OpenGL window: %s\n", SDL_GetError());
+        SDL_DestroyWindow(ckz::window);
+        return false;
+    }
+    // VSync=0 shows the frame rate the game can reach without waiting for the display.
+    if (ckz::config.vSync) {
+        SDL_GL_SetSwapInterval(1);
+    } else {
+        SDL_GL_SetSwapInterval(0);
+    }
+    ckz::ConfigureDesktopGl();
+    return true;
+}
 
-int wmain(int argc, wchar_t** argv)
+/** Everything after the log and the config: check the files, open the window, run the game. */
+int RunGame(int argc, wchar_t** argv, const std::filesystem::path& binaryPath)
 {
     namespace fs = std::filesystem;
-    setvbuf(stdout, nullptr, _IONBF, 0);
-    setvbuf(stderr, nullptr, _IONBF, 0);
-
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
         fprintf(stderr, "SDL initialization failed: %s\n", SDL_GetError());
         return 1;
     }
-    const fs::path binaryPath = fs::u8path(SDL_GetBasePath());
     fs::path assets = binaryPath / ckz::AssetsFolderName;
     fs::path saves = binaryPath / ckz::SavesFolderName;
     if (argc >= 2) {
@@ -280,58 +361,12 @@ int wmain(int argc, wchar_t** argv)
         return 1;
     }
     fs::create_directories(saves);
-
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-    SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL;
-    if (SDL_getenv("CKZ_HIDDEN") != nullptr) {
-        windowFlags |= SDL_WINDOW_HIDDEN;
-    }
-    // Use the configured window size, or the largest one of the same shape that fits the desktop.
-    int windowWidth = ckz::DisplayWidth;
-    int windowHeight = ckz::DisplayHeight;
-    SDL_Rect desktop;
-    if (SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &desktop)) {
-        const int freeHeight = desktop.h - ckz::TitleBarAllowance;
-        if (windowWidth > desktop.w || windowHeight > freeHeight) {
-            const float fitX = static_cast<float>(desktop.w) / windowWidth;
-            const float fitY = static_cast<float>(freeHeight) / windowHeight;
-            const float fit = SDL_min(fitX, fitY);
-            windowWidth = static_cast<int>(windowWidth * fit);
-            windowHeight = static_cast<int>(windowHeight * fit);
-        }
-        fprintf(stderr, "Window %dx%d (wanted %dx%d, desktop %dx%d)\n", windowWidth, windowHeight,
-                ckz::DisplayWidth, ckz::DisplayHeight, desktop.w, desktop.h);
-    }
-    ckz::window = SDL_CreateWindow("Contract Killer: Zombies", windowWidth, windowHeight, windowFlags);
-    if (ckz::window != nullptr) {
-        // SDL centres the picture, which can push the title bar of a tall window above the screen.
-        int titleBarHeight = 0;
-        int windowX = 0;
-        int windowY = 0;
-        SDL_GetWindowBordersSize(ckz::window, &titleBarHeight, nullptr, nullptr, nullptr);
-        SDL_GetWindowPosition(ckz::window, &windowX, &windowY);
-        if (windowY - titleBarHeight < 0) {
-            SDL_SetWindowPosition(ckz::window, windowX, titleBarHeight);
-        }
-        ckz::context = SDL_GL_CreateContext(ckz::window);
-    }
-    if (ckz::context == nullptr) {
-        fprintf(stderr, "Could not create the OpenGL window: %s\n", SDL_GetError());
-        SDL_DestroyWindow(ckz::window);
+    if (!CreateGameWindow()) {
         SDL_Quit();
         return 1;
     }
-    // CKZ_NO_VSYNC measures the frame rate the game can reach without waiting for the display.
-    if (SDL_getenv("CKZ_NO_VSYNC") != nullptr) {
-        SDL_GL_SetSwapInterval(0);
-    } else {
-        SDL_GL_SetSwapInterval(1);
-    }
-    ckz::ConfigureDesktopGl();
     int result = 0;
+#ifdef CKZ_TESTS
     const char* m3gTestFolder = SDL_getenv(ckz::m3g::LoadTestVariable);
     if (m3gTestFolder != nullptr) {
         // Native M3G engine check (PORT_PLAN.md, P2 / M0) instead of the game.
@@ -339,8 +374,28 @@ int wmain(int argc, wchar_t** argv)
     } else {
         result = RunApplet();
     }
+#else
+    result = RunApplet();
+#endif
     SDL_GL_DestroyContext(ckz::context);
     SDL_DestroyWindow(ckz::window);
     SDL_Quit();
+    return result;
+}
+
+} // namespace
+
+int wmain(int argc, wchar_t** argv)
+{
+    // The log comes first so that it holds every line, including the config's own messages.
+    ckz::StartLog();
+    const std::filesystem::path binaryPath = ckz::ExecutableFolder();
+    ckz::LoadConfig(binaryPath / ckz::ConfigFileName);
+    if (ckz::config.debugMode && !IsHiddenRun()) {
+        ckz::OpenLogConsole();
+    }
+    const int result = RunGame(argc, argv, binaryPath);
+    fprintf(stderr, "Exit code %d\n", result);
+    ckz::StopLogConsole();
     return result;
 }

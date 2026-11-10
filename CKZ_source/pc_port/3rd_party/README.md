@@ -26,8 +26,9 @@ Unicorn 源码包含两处 Win32 修补。 `qemu/accel/tcg/translate-all.c` 将�
 | --- | --- |
 | `include/EGL/egl.h` + `CkzEgl.cpp` | 假 EGL。桌面上只有 SDL 创建的那一个 GL 上下文，并且一直是激活状态，所以 m3gcore 的配置、上下文、surface 查询都按「只有这一个上下文」来回答；surface 只记录尺寸，供 `m3gBindEGLSurfaceTarget` 使用。 |
 | `M3gPlatform.cpp` | M3G 段解压：游戏的 zlib 只有 inflate，没有 `uncompress`，所以这里手动调 inflate。另有日志、断言，以及原生位图/窗口查询（不支持，返回失败）。 |
-| `M3gLoadTest.cpp` | M0 验证：设置环境变量 `CKZ_M3G_LOADTEST=<目录>` 后，用 m3gcore 加载目录里所有 `.m3g` 并逐个打印结果。 |
 | `M3gCkzCore.c` + `include/M3gCkzExtensions.h` | m3gcore 的编译入口：`#include` 原样的 `m3g_core.c`（unity build），再追加需要内部结构的扩展函数。目前只有 `ckzM3gRemoveChild`：移除节点时跳过 m3gcore 的 `hasBones` 检查（m3gcore 复制节点时会把这个标志带给克隆体，斩首飞出的头颅因此无法移除；原版 Swerve 允许移除，已在 ARM 后端探测确认）。 |
+
+M0 验证用的 m3g 加载测试已移到仓库根目录的 `tests/M3gLoadTest.cpp`，只编进测试版：设置环境变量 `CKZ_M3G_LOADTEST=<目录>` 后，用 m3gcore 加载目录里所有 `.m3g` 并逐个打印结果。
 
 m3gcore 源文件本身仍未修改：需要改变 m3gcore 行为时，优先在适配层处理，必须碰内部结构时加到 `M3gCkzCore.c`，注释标 `CKZ:`。
 

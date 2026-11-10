@@ -11,6 +11,8 @@
 #include "CDH_Weapon.h"
 #include "dgCamera.h"
 #include "DGHelper.h"
+#include "CGPSMapGame.h"
+#include "CGPSMapScreen.h"
 
 namespace ckz {
 namespace {
@@ -54,6 +56,39 @@ Window* GetActionControl(CGameplayHUD& hud, GameAction action)
     return nullptr;
 }
 
+/**
+ * True when the map (the game's main menu) is shown and nothing covers it. Shops, dialogs and
+ * settings open as modal windows in front of the map, at whatever level of the window tree.
+ */
+bool IsMainMapOnTop()
+{
+    auto* app = static_cast<App*>(WindowApp::m_instance);
+    if (app == nullptr || app->m_helper == nullptr || app->m_helper->m_swerveGame != nullptr) {
+        return false;
+    }
+    CGPSMapScreen* mapScreen = app->m_helper->m_gpsScreen;
+    if (mapScreen == nullptr || mapScreen->m_mapGame == nullptr) {
+        return false;
+    }
+    Window* window = static_cast<Window*>(mapScreen->m_mapGame);
+    // While the map loads, the loading screen stands in for it.
+    if (window->m_parent != mapScreen) {
+        return false;
+    }
+    // Up to the desktop: a visible modal window in front of the map at any level covers it.
+    while (window->m_parent != nullptr) {
+        for (Window* sibling = window->m_parent->m_firstChild; sibling != window; sibling = sibling->m_nextSibling) {
+            const bool modal = (sibling->m_flags & Window::FLAG_MODAL) != 0;
+            const bool visible = (sibling->m_flags & Window::FLAG_VISIBLE) != 0;
+            if (modal && visible) {
+                return false;
+            }
+        }
+        window = window->m_parent;
+    }
+    return true;
+}
+
 } // namespace
 
 bool TriggerAction(CApplet& applet, GameAction action)
@@ -71,9 +106,6 @@ bool TriggerAction(CApplet& applet, GameAction action)
     int y = control->m_height / 2;
     control->LocalToGlobal(x, y);
     const unsigned int position = EncodePosition(x, y);
-    if (SDL_getenv("CKZ_INPUT_TRACE") != nullptr) {
-        fprintf(stderr, "Action %d taps HUD at %d,%d\n", static_cast<int>(action), x, y);
-    }
     // A full tap in one go: none of the actions needs the control to stay held.
     applet.QueueSystemEvent(TouchBegan, ActionTouchId, position | (1u << 28));
     applet.QueueSystemEvent(TouchEnded, ActionTouchId, position);
@@ -83,10 +115,17 @@ bool TriggerAction(CApplet& applet, GameAction action)
 void HandleKeyDown(CApplet& applet, SDL_Keycode key)
 {
     for (const KeyBinding& binding : KeyBindings) {
-        if (binding.key == key) {
-            TriggerAction(applet, binding.action);
+        if (binding.key != key) {
+            continue;
+        }
+        // On the main map there is nothing to pause: the pause key quits, the only way out of full screen.
+        if (binding.action == GameAction::Pause && IsMainMapOnTop()) {
+            fprintf(stderr, "Pause key on the main map: quitting\n");
+            ckz::running = false;
             return;
         }
+        TriggerAction(applet, binding.action);
+        return;
     }
 }
 

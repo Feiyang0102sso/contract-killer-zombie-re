@@ -194,30 +194,10 @@ void GL_APIENTRY glResolveMultisampleFramebufferAPPLE()
 } // extern "C"
 
 namespace ckz {
-namespace {
-
-void GL_APIENTRY GlDiagnostic(GLenum, GLenum type, GLuint, GLenum, GLsizei, const char* message, const void*)
-{
-    if (type == 0x824c) { // GL_DEBUG_TYPE_ERROR
-        fprintf(stderr, "OpenGL: %s\n", message);
-    }
-}
-
-} // namespace
 
 void ConfigureDesktopGl()
 {
     fprintf(stderr, "OpenGL renderer: %s (%s)\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
-    if (SDL_getenv("CKZ_GL_DEBUG") != nullptr) {
-        using DebugCallback = decltype(&GlDiagnostic);
-        using SetCallback = void (GL_APIENTRY*)(DebugCallback, const void*);
-        auto callback = reinterpret_cast<SetCallback>(SDL_GL_GetProcAddress("glDebugMessageCallback"));
-        if (callback != nullptr) {
-            glEnable(0x92e0); // GL_DEBUG_OUTPUT
-            glEnable(0x8242); // GL_DEBUG_OUTPUT_SYNCHRONOUS
-            callback(GlDiagnostic, nullptr);
-        }
-    }
 }
 
 } // namespace ckz

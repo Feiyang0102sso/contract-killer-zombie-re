@@ -10,7 +10,6 @@
 #include <OpenGLES/ES1/glext.h>
 #include <SDL3/SDL.h>
 #include <stdio.h>
-#include <set>
 
 extern "C" {
 // Desktop OpenGL 1.1 calls (opengl32) outside the GLES headers.
@@ -179,37 +178,12 @@ void RenderNode(Object* self, Object* node, Object* transform)
     TakeError();
 }
 
-/** Debugging (CKZ_NATIVE_TRACE): describe each world the first time it is rendered. */
-void TraceWorld(Object* world)
-{
-    static std::set<Object*> traced;
-    if (SDL_getenv("CKZ_NATIVE_TRACE") == nullptr || !traced.insert(world).second) {
-        return;
-    }
-    const M3GWorld handle = reinterpret_cast<M3GWorld>(world->handle);
-    const M3GCamera camera = m3gGetActiveCamera(handle);
-    fprintf(stderr, "Swerve native: render world %p, %d children, camera %p\n", static_cast<void*>(world),
-            m3gGetChildCount(reinterpret_cast<M3GGroup>(handle)), static_cast<void*>(camera));
-    if (camera == nullptr) {
-        return;
-    }
-    M3Gfloat params[4] = {};
-    const M3Gint type = m3gGetProjectionAsParams(camera, params);
-    M3GMatrix toWorld;
-    const M3Gbool connected = m3gGetTransformTo(reinterpret_cast<M3GNode>(camera), reinterpret_cast<M3GNode>(handle), &toWorld);
-    float rows[16] = {};
-    m3gGetMatrixRows(&toWorld, rows);
-    fprintf(stderr, "  projection type %d params %g %g %g %g; camera->world %d translation %g %g %g\n", type,
-            params[0], params[1], params[2], params[3], connected, rows[3], rows[7], rows[11]);
-}
-
 void RenderWorld(Object* self, Object* world)
 {
     Graphics3DObject* graphics = AsGraphics(self);
     if (!graphics->bound || world == nullptr) {
         return;
     }
-    TraceWorld(world);
     m3gRenderWorld(graphics->context, reinterpret_cast<M3GWorld>(world->handle));
     TakeError();
 }

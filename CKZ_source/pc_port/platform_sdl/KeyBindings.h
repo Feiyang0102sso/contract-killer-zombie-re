@@ -13,7 +13,7 @@ enum class GameAction {
     Aim,
     UseGrenade,
     UsePowerUp,
-    Pause,
+    Pause, // on the main map with nothing open it quits the game instead
 };
 
 struct KeyBinding {

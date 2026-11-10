@@ -13,6 +13,13 @@ if not defined CKZ_MSBUILD (
     exit /b 1
 )
 echo Using MSBuild: "%CKZ_MSBUILD%"
-"%CKZ_MSBUILD%" "%CD%\vs\ckz_pc.sln" /m /p:Configuration=Release /p:Platform=Win32
+rem "build_pc.bat tests" builds the test executable (tests\) instead of the game.
+set "CKZ_TESTS=false"
+set "CKZ_EXE=zombsniper.exe"
+if /i "%~1"=="tests" (
+    set "CKZ_TESTS=true"
+    set "CKZ_EXE=zombsniper_tests.exe"
+)
+"%CKZ_MSBUILD%" "%CD%\vs\ckz_pc.sln" /m /p:Configuration=Release /p:Platform=Win32 /p:CkzTests=%CKZ_TESTS%
 if errorlevel 1 exit /b 1
-echo Game: %CD%\bin\Win32\Release\ckz_pc.exe
+echo Built: %CD%\bin\Win32\Release\%CKZ_EXE%

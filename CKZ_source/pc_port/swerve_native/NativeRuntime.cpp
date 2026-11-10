@@ -18,8 +18,7 @@ namespace {
 
 // Errors after this many are counted but not printed.
 constexpr int ErrorLogLimit = 200;
-// Set to print the native call stack of every m3gcore error (debugging).
-constexpr const char* TraceVariable = "CKZ_NATIVE_TRACE";
+// Native frames printed for an unimplemented slot.
 constexpr int TraceFrames = 10;
 
 M3GInterface m3g;
@@ -79,16 +78,6 @@ void RememberError(M3Genum errorCode, M3GInterface)
     if (loggedErrors < ErrorLogLimit) {
         loggedErrors++;
         fprintf(stderr, "Swerve native: m3gcore error %s\n", M3gErrorName(errorCode));
-        if (SDL_getenv(TraceVariable) != nullptr) {
-            // Return addresses for offline symbolization (module base printed once).
-            void* frames[TraceFrames] = {};
-            const USHORT count = CaptureStackBackTrace(1, TraceFrames, frames, nullptr);
-            fprintf(stderr, "  stack (base %08x):", static_cast<unsigned int>(reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr))));
-            for (USHORT index = 0; index < count; index++) {
-                fprintf(stderr, " %08x", static_cast<unsigned int>(reinterpret_cast<uintptr_t>(frames[index])));
-            }
-            fprintf(stderr, "\n");
-        }
     }
 }
 

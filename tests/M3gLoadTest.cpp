@@ -2,7 +2,7 @@
 // Runs inside the game process after the GL context exists, because m3gcore may touch GL
 // while it creates images and textures. See PORT_PLAN.md, P2 / M0.
 #include "M3gLoadTest.h"
-#include "../swerve_native/NativeRuntime.h"
+#include "../CKZ_source/pc_port/swerve_native/NativeRuntime.h"
 #include <m3g_core.h>
 #include <SDL3/SDL.h>
 #include <stdio.h>

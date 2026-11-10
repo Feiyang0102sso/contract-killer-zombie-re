@@ -8,8 +8,6 @@
 #include "CGPSMapGame.h"
 #include "CGPSMapScreen.h"
 #include "CHuntingInfo.h"
-#include "CMapLocation.h"
-#include "CMissionManager.h"
 #include "CProgressSystem.h"
 #include "CTutorialManager.h"
 #include "DGHelper.h"
@@ -124,45 +122,6 @@ void HandleCheatKey(SDL_Keycode key)
             ApplyCheat(code);
             return;
         }
-    }
-}
-
-void UpdateAutoPlay()
-{
-    static bool started = false;
-    if (started) {
-        return;
-    }
-    const char* mode = SDL_getenv(AutoPlayVariable);
-    if (mode == nullptr || strcmp(mode, AutoPlaySurvival) != 0) {
-        return;
-    }
-    auto* app = static_cast<App*>(WindowApp::m_instance);
-    if (app == nullptr || app->m_helper == nullptr) {
-        return;
-    }
-    CGPSMapScreen* mapScreen = app->m_helper->m_gpsScreen;
-    const bool inMission = app->m_helper->m_swerveGame != nullptr;
-    const bool mapOpen = !inMission && mapScreen != nullptr && mapScreen->m_mapGame != nullptr &&
-        mapScreen->m_mapGame->m_parent == mapScreen;
-    if (!mapOpen) {
-        return;
-    }
-    // The survival ("endless") mission sits on the map location of type MISSION_EM.
-    CGPSMapGame* map = mapScreen->m_mapGame;
-    for (int index = 0; index < map->m_locations.size(); index++) {
-        CMapLocation* location = map->m_locations[index];
-        if (location->m_missionType != CMission::MISSION_EM || !location->HasMission()) {
-            continue;
-        }
-        const CMission* mission = app->m_missionManager->GetMissionByName(location->GetCurrentMission());
-        if (mission == nullptr) {
-            continue;
-        }
-        started = true;
-        fprintf(stderr, "Auto play: starting the survival mission\n");
-        map->StartMission(mission);
-        return;
     }
 }
 

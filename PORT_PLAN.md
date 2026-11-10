@@ -12,9 +12,9 @@
   - 剩下的瓶颈是结构性的：僵尸多时每帧约 1900 次 API 调用和约 3100 次导入陷阱，再加上每帧约 1 万个顶点的 CPU 蒙皮。实测僵尸多时约 30 帧，清空后 60–70 帧。
   - 试过把 setjmp 放进 guest、用 unicorn 多出口代替陷阱 hook，都没有显著收益，已撤回。
   - 目标是 165 帧（每帧约 6ms），只能去掉模拟器。
-- 调试工具：设置环境变量 `CKZ_ARM_PROFILE=1` 启动，按 F8 开始和停止录制，会写出 `arm_profile.txt`（guest 基本块热点）和 `arm_callers.txt`（按游戏侧调用栈统计的 Swerve 耗时）。
-- **2026-11-09 夜更新**：原生 m3gcore 后端已设为默认（`CKZ_SWERVE=arm` 切回模拟版）。修好了命中特效白色巨型三角形和爆头无伤害两个 bug；生存模式 15 只僵尸时稳定 165 帧（垂直同步上限），主线程 CPU 约 1.2ms/帧。详见 P2 各里程碑。
-- 自动化测试设施（都靠环境变量开启，见 `pc_port/platform_sdl/DebugTools.h`）：`CKZ_AUTOPLAY=survival` 自动开始生存模式；`CKZ_DEBUG_KEYS=1` 后 F10 开火、方向键转视角、F11 朝最近的头开一枪、F7 瞄准（鼠标被捕获时 SDL 读 raw input，外部注入的鼠标消息无效，键盘消息有效）；`CKZ_PICK_TEST=1` 每 1.5 秒对屏幕内每个僵尸的头部做拾取自检；`CKZ_FPS_LOG=1` 每秒打印帧率、工作耗时、主线程 CPU 时间和存活僵尸数；F9 导出下一帧。
+- 调试工具（只在测试版 `zombsniper_tests.exe` 里，见 `tests/ArmProfiler.h`）：`zombsniper.cfg` 设 `Engine=swerve`，环境变量 `CKZ_ARM_PROFILE=1` 启动，按 F8 开始和停止录制，会写出 `arm_profile.txt`（guest 基本块热点）和 `arm_callers.txt`（按游戏侧调用栈统计的 Swerve 耗时）。
+- **2026-11-09 夜更新**：原生 m3gcore 后端已设为默认（`CKZ_SWERVE=arm` 切回模拟版；2026-11-10 起改为 `zombsniper.cfg` 的 `Engine=swerve`）。修好了命中特效白色巨型三角形和爆头无伤害两个 bug；生存模式 15 只僵尸时稳定 165 帧（垂直同步上限），主线程 CPU 约 1.2ms/帧。详见 P2 各里程碑。
+- 自动化测试设施（**2026-11-10 起移到 `tests/`，只编进测试版**：`build_pc.bat tests` 生成 `zombsniper_tests.exe`，与游戏同目录、共用素材；各项仍靠环境变量开启，见 `tests/TestTools.h`）：`CKZ_AUTOPLAY=survival` 自动开始生存模式；`CKZ_DEBUG_KEYS=1` 后 F10 开火、方向键转视角、F11 朝最近的头开一枪、F7 瞄准（鼠标被捕获时 SDL 读 raw input，外部注入的鼠标消息无效，键盘消息有效）；`CKZ_PICK_TEST=1` 每 1.5 秒对屏幕内每个僵尸的头部做拾取自检；`CKZ_HIDDEN=1` 隐藏窗口；`CKZ_M3G_LOADTEST=<目录>` 跑 m3g 加载测试。游戏版的调试项改由 `zombsniper.cfg` 控制：`DebugMode=1` 打开黑框和 F9（导出下一帧），再加 `FpsLog=1` 每秒记录帧率、工作耗时、主线程 CPU 时间和存活僵尸数；`CKZ_SWERVE`、`CKZ_NO_VSYNC`、`CKZ_FPS_LOG` 已由 `Engine`、`VSync`、`FpsLog` 取代。所有输出写入 exe 同目录的同名 `.log`。`CKZ_INPUT_TRACE`、`CKZ_GL_DEBUG`、`CKZ_NATIVE_TRACE` 已删除。
 
 ## 1. 目标与非目标
 
@@ -196,7 +196,7 @@ EPL-1.0 是文件级弱 copyleft：我们改过的 m3gcore 文件要以 EPL 提�
    └── native 后端：适配层 → m3gcore（C）→ GLES1 shim → 桌面 GL
 ```
 
-后端运行时可切换：默认是 native；环境变量 `CKZ_SWERVE=arm` 切回原版模拟。同一个游戏、同一份存档可以直接做 A/B。
+后端运行时可切换：默认是 native；`zombsniper.cfg` 设 `Engine=swerve` 切回原版模拟（最初是环境变量 `CKZ_SWERVE=arm`）。同一个游戏、同一份存档可以直接做 A/B。
 
 #### M0 落地核心（S）—— 已完成（2026-11-09）
 
@@ -286,7 +286,7 @@ EPL-1.0 是文件级弱 copyleft：我们改过的 m3gcore 文件要以 EPL 提�
 
 **M5 之后**：native 后端设为默认，Unicorn 只留在对拍工具里，`swerve-arm.bin` 不再随游戏发布。
 
-> 进度：native 后端已设为默认（`swvNew`）。Unicorn 和 `swerve-arm.bin` 暂时仍随 exe 构建和发布，作为 `CKZ_SWERVE=arm` 的对照；等用户实测确认后再挪进独立的对拍工具。
+> 进度：native 后端已设为默认（`swvNew`）。Unicorn 和 `swerve-arm.bin` 暂时仍随 exe 构建和发布，作为 `Engine=swerve` 的对照；等用户实测确认后再挪进独立的对拍工具。
 
 ### P3 SDL3 平台层（M，可与 P2 并行）
 

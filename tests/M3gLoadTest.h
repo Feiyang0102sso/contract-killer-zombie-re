@@ -1,4 +1,5 @@
-// M0 check of the native M3G engine (PORT_PLAN.md, P2): load M3G files with m3gcore.
+// Test: M0 check of the native M3G engine (PORT_PLAN.md, P2): load M3G files with m3gcore.
+// Compiled only into the test build (CkzTests=true).
 #pragma once
 
 namespace ckz::m3g {

@@ -23,18 +23,31 @@
   <Import Project="Win32.props" />
   <Import Project="GameCompile.props" />
   <PropertyGroup>
+    <TargetName>zombsniper</TargetName>
     <CkzOpenALImport>$(IntDir)OpenAL32.lib</CkzOpenALImport>
     <LinkToolPath>$(CkzLlvm)</LinkToolPath>
     <LinkToolExe>lld-link.exe</LinkToolExe>
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <!-- Test build (/p:CkzTests=true): adds tests\ as zombsniper_tests.exe next to the game, sharing its assets. -->
+  <PropertyGroup Condition="'$(CkzTests)' == 'true'">
+    <TargetName>zombsniper_tests</TargetName>
+    <IntDir>$(CkzRoot)out\$(Platform)\$(CkzBuildName)\$(MSBuildProjectName)-tests\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(CkzTests)' == 'true'">
+    <ClCompile>
+      <PreprocessorDefinitions>CKZ_TESTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <ForcedIncludeFiles>new</ForcedIncludeFiles>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <!-- A window program: no console unless DebugMode=1 opens one (Log.cpp). The entry stays wmain. -->
+      <SubSystem>Windows</SubSystem>
+      <EntryPointSymbol>wmainCRTStartup</EntryPointSymbol>
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <BaseAddress>0x10000000</BaseAddress>
@@ -52,6 +65,8 @@
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Applet.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Audio.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Cheat.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Config.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Log.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\DebugTools.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Controls.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Core.cpp" />
@@ -65,9 +80,6 @@
     <ClCompile Include="..\CKZ_source\pc_port\stubs\OfflinePlatform.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\swerve_compat\ArmImports.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\swerve_compat\ArmMachine.cpp" />
-    <ClCompile Include="..\CKZ_source\pc_port\m3g_platform\M3gLoadTest.cpp">
-      <AdditionalIncludeDirectories>$(CkzThirdParty)\m3gcore\inc;$(CkzPort)m3g_platform\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
     <ClCompile Include="..\CKZ_source\pc_port\swerve_native\NativeRuntime.cpp;..\CKZ_source\pc_port\swerve_native\NativeScene.cpp;..\CKZ_source\pc_port\swerve_native\NativeTransform.cpp;..\CKZ_source\pc_port\swerve_native\NativeLoader.cpp;..\CKZ_source\pc_port\swerve_native\NativeImage.cpp;..\CKZ_source\pc_port\swerve_native\NativeGraphics3D.cpp;..\CKZ_source\pc_port\swerve_native\SwerveExtendedM3g.cpp">
       <AdditionalIncludeDirectories>$(CkzThirdParty)\m3gcore\inc;$(CkzPort)m3g_platform\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ObjectFileName>$(IntDir)swerve_native\</ObjectFileName>
@@ -89,6 +101,8 @@
     <ClInclude Include="..\CKZ_source\pc_port\include\strings.h" />
     <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\AssetPaths.h" />
     <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\Cheat.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\Config.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\Log.h" />
     <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\DebugTools.h" />
     <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\Host.h" />
     <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\KeyBindings.h" />
@@ -102,6 +116,17 @@
     <None Include="..\scripts\stage_assets.py" />
     <None Include="..\CKZ_source\pc_port\swerve_compat\swerve-arm.bin" />
     <None Include="..\README.md" />
+    <None Include="..\zombsniper.cfg" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(CkzTests)' == 'true'">
+    <ClCompile Include="..\tests\ArmProfiler.cpp" />
+    <ClCompile Include="..\tests\TestTools.cpp" />
+    <ClCompile Include="..\tests\M3gLoadTest.cpp">
+      <AdditionalIncludeDirectories>$(CkzThirdParty)\m3gcore\inc;$(CkzPort)m3g_platform\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClInclude Include="..\tests\ArmProfiler.h" />
+    <ClInclude Include="..\tests\TestTools.h" />
+    <ClInclude Include="..\tests\M3gLoadTest.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="ckz_game.vcxproj">
@@ -122,6 +147,8 @@
   <Target Name="CopyRuntimeLibraries" AfterTargets="Build">
     <Copy SourceFiles="$(CkzSDL)\lib\x86\SDL3.dll;$(CkzOpenAL)\bin\Win32\soft_oal.dll"
           DestinationFiles="$(OutDir)SDL3.dll;$(OutDir)OpenAL32.dll" SkipUnchangedFiles="true" />
+    <!-- The repository's zombsniper.cfg is the master copy: every build puts it next to the exe. -->
+    <Copy SourceFiles="$(CkzRoot)zombsniper.cfg" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
     <Copy Condition="'$(CkzAddressSanitizer)' == 'true'"
           SourceFiles="$(VCToolsInstallDir)bin\Hostx64\x86\clang_rt.asan_dynamic-i386.dll"
           DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />

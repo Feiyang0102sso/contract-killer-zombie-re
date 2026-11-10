@@ -80,7 +80,24 @@ VS 工程直接使用 [`CKZ_source/pc_port/3rd_party/`](CKZ_source/pc_port/3rd_p
 
 所需文件及其位置统一定义在 [`AssetPaths.h`](CKZ_source/pc_port/platform_sdl/AssetPaths.h)。启动时逐个检查，缺哪个就报哪个的完整路径。
 
-运行 `bin/Win32/Release/ckz_pc.exe`。存档默认写入同目录的 `saves/`。运行需要支持桌面 OpenGL 兼容上下文和帧缓冲对象的驱动，以及 x86 版 Visual C++ 运行库。
+运行 `bin/Win32/Release/zombsniper.exe`。存档默认写入同目录的 `saves/`。运行需要支持桌面 OpenGL 兼容上下文和帧缓冲对象的驱动，以及 x86 版 Visual C++ 运行库。
+
+### 配置与日志
+
+设置写在 EXE 同目录的 `zombsniper.cfg`。仓库根目录的 [`zombsniper.cfg`](zombsniper.cfg) 是母本，每次构建都会复制过去，**会覆盖 `bin/` 里改过的那份**，长期改动请改母本。缺失的键或整个文件缺失时使用默认值。键名和默认值统一定义在 [`Config.h`](CKZ_source/pc_port/platform_sdl/Config.h)。
+
+| 键 | 默认 | 作用 |
+| --- | --- | --- |
+| `[common] Title` | `Contract Killer: Zombies` | 窗口标题 |
+| `[graph] Engine` | `m3g` | 3D 引擎：`m3g` 为原生 m3gcore；`swerve` 为 Unicorn 模拟的原版 Swerve，较慢，用于对照 |
+| `[graph] WindowWidth` / `WindowHeight` | `2048` / `1536` | 窗口尺寸，超出桌面时按比例缩小 |
+| `[graph] FullScreen` | `0` | 无边框全屏，画面保持 4:3，两侧留黑边 |
+| `[graph] VSync` | `1` | 垂直同步 |
+| `[game] DrawFPS` | `1` | 在画面左上角显示帧率 |
+| `[debug] DebugMode` | `0` | 打开控制台黑框，并启用调试热键 F9（导出下一帧） |
+| `[debug] FpsLog` | `0` | 每秒记录帧率、帧耗时、CPU 时间和存活僵尸数，需 `DebugMode=1` |
+
+所有输出都写入 EXE 同目录的 `zombsniper.log`，与是否打开黑框无关；黑框显示的就是这个日志的内容。
 
 | 输入 | 操作 |
 | --- | --- |
@@ -109,6 +126,10 @@ PC 版原生编译游戏代码，使用 SDL3 接入窗口和输入、桌面 Open
 
 安装 Visual Studio 的 x86 AddressSanitizer 组件后，可用 MSBuild 属性 `CkzAddressSanitizer=true` 构建带原生内存检查的版本，产物目录带 `-ASan` 后缀。
 
+## 测试版
+
+开发和自动化测试用的工具放在 [`tests/`](tests/)，不编进游戏。运行 `build_pc.bat tests`（即 MSBuild 属性 `CkzTests=true`）会在游戏同目录生成 `zombsniper_tests.exe`，与游戏共用素材、存档和 `zombsniper.cfg`，日志写入 `zombsniper_tests.log`。各项工具靠环境变量开启，说明见 [`TestTools.h`](tests/TestTools.h)、[`ArmProfiler.h`](tests/ArmProfiler.h) 和 [`M3gLoadTest.h`](tests/M3gLoadTest.h)。
+
 ## 目录
 
 | 路径 | 内容 |
@@ -117,6 +138,7 @@ PC 版原生编译游戏代码，使用 SDL3 接入窗口和输入、桌面 Open
 | `build_pc.bat` | Release Win32 一键构建入口 |
 | `CKZ_source/` | 恢复出的游戏源码，`packages/` 和 `src/` 沿用原目录布局 |
 | `CKZ_source/pc_port/` | PC 平台层、Swerve 兼容层和第三方依赖 |
+| `tests/` | 只编进测试版的自动化测试和性能分析工具 |
 | `scripts/` | LLVM 准备和 Swerve 镜像部署脚本 |
 | `out/`、`bin/` | 构建中间产物和可运行文件 |
 

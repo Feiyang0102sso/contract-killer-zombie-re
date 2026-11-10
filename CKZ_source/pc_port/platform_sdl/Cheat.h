@@ -33,12 +33,4 @@ constexpr size_t CheatTypedLettersKept = 16;
 /** Feed one pressed key; applies a cheat when the typed letters complete its code. */
 void HandleCheatKey(SDL_Keycode key);
 
-// Debug: with CKZ_AUTOPLAY=survival the survival mission starts as soon as the map is open
-// (automated performance and rendering checks, see PORT_PLAN.md P2).
-constexpr const char* AutoPlayVariable = "CKZ_AUTOPLAY";
-constexpr const char* AutoPlaySurvival = "survival";
-
-/** Call once per frame; starts the auto play mission once. */
-void UpdateAutoPlay();
-
 } // namespace ckz

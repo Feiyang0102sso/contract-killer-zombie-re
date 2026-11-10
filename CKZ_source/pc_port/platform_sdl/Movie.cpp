@@ -179,8 +179,8 @@ public:
         return true;
     }
 
-    /** Stretch the canvas over the window. The read framebuffer binding is left on the canvas. */
-    void BlitToWindow(int windowWidth, int windowHeight)
+    /** Stretch the canvas over the game picture. The read framebuffer binding is left on the canvas. */
+    void BlitToWindow(const SDL_Rect& picture)
     {
         if (m_framebuffer == 0) {
             glGenFramebuffersOES(1, &m_framebuffer);
@@ -189,8 +189,8 @@ public:
         }
         glBindFramebufferOES(GL_READ_FRAMEBUFFER_APPLE, m_framebuffer);
         // Decoded rows run top to bottom while GL rows run bottom to top: flip while blitting.
-        ckzBlitFramebuffer(0, 0, m_canvasWidth, m_canvasHeight, 0, windowHeight, windowWidth, 0,
-                           GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        ckzBlitFramebuffer(0, 0, m_canvasWidth, m_canvasHeight, picture.x, picture.y + picture.h,
+                           picture.x + picture.w, picture.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     }
 
 private:
@@ -439,12 +439,12 @@ CMovieEvent* CMovieEvent::CreateInstance() { return new MovieEventPC; }
 
 namespace ckz {
 
-bool BlitMovieFrame(int windowWidth, int windowHeight)
+bool BlitMovieFrame(const SDL_Rect& picture)
 {
     if (activeMovie == nullptr) {
         return false;
     }
-    activeMovie->BlitToWindow(windowWidth, windowHeight);
+    activeMovie->BlitToWindow(picture);
     return true;
 }
 
