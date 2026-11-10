@@ -1208,9 +1208,13 @@ static void notdirty_write(CPUState *cpu, vaddr mem_vaddr, unsigned size,
     // - have memory hooks installed
     // - or doing snapshot
     // , then never clean the tlb
+    // CKZ: with the ARM MMU off every TLB entry is executable (addr_code != -1),
+    // so the upstream check never cleaned any page and every store took this slow path.
+    // Use the Unicorn mapping instead: TBs only exist in UC_PROT_EXEC regions.
+    // Unmapped-access hooks never fire for a mapped page, so they do not block cleaning.
     if (!(!mr || (tlbe->addr_write != -1 && mr->priority < cpu->uc->snapshot_level)) &&
-            !(tlbe->addr_code != -1) &&
-            !uc_mem_hook_installed(cpu->uc, tlbe->paddr | (mem_vaddr & ~TARGET_PAGE_MASK))) {
+            (mr->perms & UC_PROT_EXEC) == 0 &&
+            !uc_mem_access_hook_installed(cpu->uc, tlbe->paddr | (mem_vaddr & ~TARGET_PAGE_MASK))) {
         tlb_set_dirty(cpu, mem_vaddr);
     }
 }

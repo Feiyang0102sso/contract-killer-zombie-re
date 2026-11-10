@@ -10,3 +10,5 @@
 | `libvorbis-1.2.0/` | 恢复版 Vorbis 库缺少的 `lpc.c` 和许可 | [Xiph.org 发布包](https://downloads.xiph.org/releases/vorbis/libvorbis-1.2.0.tar.gz) |
 
 Unicorn 源码包含两处 Win32 修补。 `qemu/accel/tcg/translate-all.c` 将最后一次 JIT 内存提交限制在已保留的地址范围内。`qemu/include/qemu/compiler.h` 为 ClangCL 保留 ARM 向量访问所需的对齐属性。
+
+另有一处性能修补（注释标 `CKZ:`）。`qemu/accel/tcg/cputlb.c` 的 `notdirty_write` 改为按 Unicorn 映射权限判断页面是否可执行，并且不再因 `*_UNMAPPED` hook 拒绝清除 dirty（新增的 `uc_mem_access_hook_installed` 在 `qemu/include/exec/exec-all.h`）。上游按 TLB 的 `addr_code` 判断，而 ARM 关闭 MMU 时所有页都可执行，结果每次写内存都要走慢路径。修补后，Swerve 升级界面的加载卡顿由约 1.5 秒降到约 0.7 秒，动画期间的模拟耗时约降为原来的四分之一。

@@ -500,4 +500,22 @@ static inline bool uc_mem_hook_installed(struct uc_struct *uc, hwaddr paddr)
     return false;
 }
 
+// CKZ: uc_mem_hook_installed without the *_UNMAPPED hooks, which cannot fire on a mapped page.
+static inline bool uc_mem_access_hook_installed(struct uc_struct *uc, hwaddr paddr)
+{
+    if (HOOK_EXISTS_BOUNDED(uc, UC_HOOK_MEM_READ, paddr))
+        return true;
+    if (HOOK_EXISTS_BOUNDED(uc, UC_HOOK_MEM_READ_PROT, paddr))
+        return true;
+    if (HOOK_EXISTS_BOUNDED(uc, UC_HOOK_MEM_FETCH_PROT, paddr))
+        return true;
+    if (HOOK_EXISTS_BOUNDED(uc, UC_HOOK_MEM_READ_AFTER, paddr))
+        return true;
+    if (HOOK_EXISTS_BOUNDED(uc, UC_HOOK_MEM_WRITE, paddr))
+        return true;
+    if (HOOK_EXISTS_BOUNDED(uc, UC_HOOK_MEM_WRITE_PROT, paddr))
+        return true;
+    return false;
+}
+
 #endif
