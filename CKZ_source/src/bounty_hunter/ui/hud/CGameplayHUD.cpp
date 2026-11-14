@@ -23,6 +23,13 @@
 using namespace com::glu::platform::graphics;
 using namespace com::glu::platform::components;
 
+#ifdef CKZ_PC
+// PORT: defined by the desktop platform layer (pc_port/platform_sdl/KeyHints.cpp).
+namespace ckz {
+Window* CreateKeyHintWindow(CGameplayHUD* hud);
+}
+#endif
+
 // The original actually uses 4ff990, the complete six groups of 96B; must not adopt 4f07b0, the same-named MergedGlobals from ref.
 static SScreenAdaptingConstant HUD_MARGIN_TOP(5);
 static SScreenAdaptingConstant HUD_MARGIN_SIDE(10);
@@ -53,6 +60,11 @@ CGameplayHUD::CGameplayHUD(CSwerveGame* game) : Window(false), m_flagBc(false),
     m_hpBar = NULL; // The original writes f0 only after all four Inits complete.
     m_directionArrow = new ArrowMarkerWin;
     AddToFront(m_directionArrow);
+#ifdef CKZ_PC
+    // PORT: desktop key hints over the HUD controls (pc_port/platform_sdl/KeyHints.cpp); added last,
+    // so it is the front child and is painted over the other HUD children.
+    AddToFront(ckz::CreateKeyHintWindow(this));
+#endif
 }
 
 void CGameplayHUD::InitCommon()

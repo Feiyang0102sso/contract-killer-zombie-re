@@ -66,5 +66,7 @@ void RunFrame(CApplet& applet, LoopInput& input);
 int RunApplet();
 /** Debug (F9): write the next presented game frame to frame_<n>_<w>x<h>.rgba next to the executable. */
 void RequestFrameDump();
+/** Key hint badges (KeyHints.cpp) the mission HUD drew in its last frame; 0 without a HUD. */
+int ShownKeyHintCount();
 
 } // namespace ckz

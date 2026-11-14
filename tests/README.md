@@ -25,6 +25,7 @@ build_pc.bat tests
 | --- | --- |
 | `CKZ_ENGINE=swerve` | 覆盖 `zombsniper.cfg` 的 `Engine`，让同一套游戏断言在原版 Swerve（Unicorn）上跑，用来和原生后端对照 |
 | `CKZ_DIFF_ALL=1` | 对拍时输出每一条差异（默认每个快照只列前 12 条），排查单个文件时用 |
+| `CKZ_DUMP_KEY_HINTS=1` | `Mission.KeyHintsLabelHudControls` 把开镜前后的 HUD 各导出一帧（exe 旁的 `frame_<n>_1024x768.rgba`），用来检查键位徽章的位置 |
 
 想同时跑两个实例（例如一边对拍一边跑游戏断言），把 exe 复制成另一个名字再运行：日志按 exe 名分开，重新编译时也不会因为 exe 被占用而链接失败。
 

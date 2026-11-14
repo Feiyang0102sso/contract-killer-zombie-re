@@ -3,17 +3,17 @@
 // The first icon in the exe is what Explorer, the taskbar and the SDL window use.
 1 ICON "../assets/Icon.ico"
 
-// Version 1.0.0 (1 = VS_VERSION_INFO)
+// Version 1.0.1 (1 = VS_VERSION_INFO); keep in step with the changelog in README.md / README_CN.md
 1 VERSIONINFO
-FILEVERSION 1,0,0,0
-PRODUCTVERSION 1,0,0,0
+FILEVERSION 1,0,1,0
+PRODUCTVERSION 1,0,1,0
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "FileVersion", "1.0.0"
-            VALUE "ProductVersion", "1.0.0"
+            VALUE "FileVersion", "1.0.1"
+            VALUE "ProductVersion", "1.0.1"
         END
     END
     BLOCK "VarFileInfo"

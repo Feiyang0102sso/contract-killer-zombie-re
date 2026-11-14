@@ -4,7 +4,7 @@
 
 ## Overview
 
-This project rebuilds the game for PC on top of the iOS source code.
+This project rebuilds the game for PC on top of the iOS source code. Current version: **1.0.1** (see [Changelog](#changelog)).
 
 The game source is a 1:1 reconstruction of `zombsniper` from the iOS 3.1.1 release, see the [original iOS reconstruction (`ori_IOS` branch)](https://github.com/Feiyang0102sso/contract-killer-zombie-re/tree/ori_IOS). On PC it is compiled natively for x86. The parts of the original that depend on iOS are replaced by the bridge layer below.
 
@@ -77,6 +77,7 @@ Settings live in `zombsniper.cfg` next to the EXE.
 | `[graph] FullScreen` | `0` | Borderless full screen; the picture stays 4:3 with black bars on the sides |
 | `[graph] VSync` | `1` | Vertical sync |
 | `[game] DrawFPS` | `1` | Show the frame rate in the top-left corner |
+| `[game] KeyHints` | `1` | Show the bound key on each mission HUD control (a blood splat badge) |
 | `[debug] DebugMode` | `0` | Open a console window and enable the debug hotkey F9 (dump the next frame) |
 | `[debug] FpsLog` | `0` | Log frame rate, frame time, CPU time and live zombie count every second; needs `DebugMode=1` |
 
@@ -93,6 +94,8 @@ Settings live in `zombsniper.cfg` next to the EXE.
 | `1` / `2` | Grenade / power-up |
 | `Esc` | Pause |
 
+In missions every HUD control carries a badge with its key, taken from [`KeyBindings.h`](CKZ_source/pc_port/platform_sdl/KeyBindings.h); `[game] KeyHints=0` turns the badges off.
+
 ## Cheat codes
 
 | Code | Effect |
@@ -102,6 +105,16 @@ Settings live in `zombsniper.cfg` next to the EXE.
 | `chm` | +9,999,999 cash and gold |
 
 Note that the level cheats affect how the random pool of side missions is generated. Some main missions may end up with no side missions to play alongside them. Don't worry: even if the pool goes wrong, side missions refresh normally once all main missions are finished.
+
+## Changelog
+
+### 1.0.1 (2026-11-13)
+
+- Add key hint icon. Turned off with `[game] KeyHints=0`.
+
+### 1.0.0 (2026-11-10)
+
+- init release.
 
 ## Disclaimer
 

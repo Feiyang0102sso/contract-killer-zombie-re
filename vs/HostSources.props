@@ -10,6 +10,8 @@
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Log.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\DebugTools.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Controls.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\KeyHintArt.cpp" />
+    <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\KeyHints.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Core.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\Files.cpp" />
     <ClCompile Include="..\CKZ_source\pc_port\platform_sdl\GlesDesktop.cpp" />
@@ -47,6 +49,7 @@
     <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\DebugTools.h" />
     <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\Host.h" />
     <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\KeyBindings.h" />
+    <ClInclude Include="..\CKZ_source\pc_port\platform_sdl\KeyHintArt.h" />
     <ClInclude Include="..\CKZ_source\pc_port\swerve_compat\ArmBackend.h" />
     <ClInclude Include="..\CKZ_source\pc_port\swerve_compat\ArmCall.h" />
     <ClInclude Include="..\CKZ_source\pc_port\swerve_compat\ArmImports.h" />

@@ -23,6 +23,7 @@ struct Config {
     bool fullScreen;    // [graph] FullScreen
     bool vSync;         // [graph] VSync
     bool drawFps;       // [game] DrawFPS
+    bool keyHints;      // [game] KeyHints: key badges on the mission HUD controls (KeyHints.cpp)
     bool debugMode;     // [debug] DebugMode
     bool fpsLog;        // [debug] FpsLog; LoadConfig turns it off without DebugMode
 };
@@ -45,6 +46,7 @@ inline const ConfigKey ConfigKeys[] = {
     { "graph",  "FullScreen",   "0",                        nullptr,         nullptr,              &Config::fullScreen },
     { "graph",  "VSync",        "1",                        nullptr,         nullptr,              &Config::vSync },
     { "game",   "DrawFPS",      "1",                        nullptr,         nullptr,              &Config::drawFps },
+    { "game",   "KeyHints",     "1",                        nullptr,         nullptr,              &Config::keyHints },
     { "debug",  "DebugMode",    "0",                        nullptr,         nullptr,              &Config::debugMode },
     { "debug",  "FpsLog",       "0",                        nullptr,         nullptr,              &Config::fpsLog },
 };

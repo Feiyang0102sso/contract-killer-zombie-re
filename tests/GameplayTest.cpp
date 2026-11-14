@@ -37,6 +37,11 @@ namespace {
 typedef swerve::Camera<CSwerveAssertingErrorHandler> Camera;
 typedef swerve::Group<CSwerveAssertingErrorHandler> Group;
 
+// KeyHintsLabelHudControls: frames for the HUD to settle, the scope in / out animation, and the
+// badges that are always shown (fire, scope, pause).
+constexpr int KeyHintSettleFrames = 10;
+constexpr double ScopeSwitchSeconds = 1.5;
+constexpr int MinimumKeyHints = 3;
 // How long a test waits for a zombie to walk into view.
 constexpr double TargetTimeoutSeconds = 40.0;
 // Shots spent on one target before the test gives up on it.
@@ -789,6 +794,36 @@ TEST_F(Mission, EveryEquippedWeaponDamages)
                 damagingShots, shots);
     }
     EXPECT_GT(tested, 0);
+}
+
+TEST_F(Mission, KeyHintsLabelHudControls)
+{
+    if (!ckz::config.keyHints) {
+        GTEST_SKIP() << "KeyHints=0 in zombsniper.cfg";
+    }
+    // CKZ_DUMP_KEY_HINTS=1: write the unscoped and the scoped HUD next to the exe (frame_<n>_1024x768.rgba).
+    const bool dumpFrames = getenv("CKZ_DUMP_KEY_HINTS") != nullptr;
+    m_harness->RunFrames(KeyHintSettleFrames);
+    const int unscoped = ckz::ShownKeyHintCount();
+    // Fire, scope and pause are always there; reload, switch, grenade and power-up depend on the save.
+    EXPECT_GE(unscoped, MinimumKeyHints);
+    if (dumpFrames) {
+        ckz::RequestFrameDump();
+        m_harness->RunFrames(KeyHintSettleFrames);
+    }
+    // Through the scope the HUD shows other controls; the badges follow them.
+    ASSERT_TRUE(ckz::TriggerAction(m_harness->Applet(), ckz::GameAction::Aim));
+    m_harness->RunSeconds(ScopeSwitchSeconds);
+    const int scoped = ckz::ShownKeyHintCount();
+    EXPECT_GE(scoped, 1);
+    if (dumpFrames) {
+        ckz::RequestFrameDump();
+        m_harness->RunFrames(KeyHintSettleFrames);
+    }
+    fprintf(stderr, "Key hints: %d badges unscoped, %d scoped\n", unscoped, scoped);
+    // Leave the scope for the tests that follow.
+    ckz::TriggerAction(m_harness->Applet(), ckz::GameAction::Aim);
+    m_harness->RunSeconds(ScopeSwitchSeconds);
 }
 
 /** Weapons.*: every weapon of the game, each in its own survival start (about 15 s per weapon). */

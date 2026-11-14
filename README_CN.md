@@ -4,7 +4,7 @@
 
 ## 概述
 
-本项目旨在在 iOS 版代码的基础上进行 PC 端重建。
+本项目旨在在 iOS 版代码的基础上进行 PC 端重建。当前版本：**1.0.1**（见[更新记录](#更新记录)）。
 
 游戏源码来自对 iOS 3.1.1 版 `zombsniper` 的 1:1 还原，见 [iOS 原版还原（`ori_IOS` 分支）](https://github.com/Feiyang0102sso/contract-killer-zombie-re/tree/ori_IOS)，在 PC 上按 x86 原生编译。原版依赖 iOS 的部分，由下面的桥接层替换。
 
@@ -77,6 +77,7 @@
 | `[graph] FullScreen` | `0` | 无边框全屏，画面保持 4:3，两侧留黑边 |
 | `[graph] VSync` | `1` | 垂直同步 |
 | `[game] DrawFPS` | `1` | 在画面左上角显示帧率 |
+| `[game] KeyHints` | `1` | 在关卡 HUD 按钮上显示对应键位（血迹徽章） |
 | `[debug] DebugMode` | `0` | 打开控制台黑框，并启用调试热键 F9（导出下一帧） |
 | `[debug] FpsLog` | `0` | 每秒记录帧率、帧耗时、CPU 时间和存活僵尸数，需 `DebugMode=1` |
 
@@ -93,6 +94,8 @@
 | `1` / `2` | 手雷 / 增益道具 |
 | `Esc` | 暂停 |
 
+关卡里每个 HUD 按钮旁都有一枚标着对应键位的徽章，键位取自 [`KeyBindings.h`](CKZ_source/pc_port/platform_sdl/KeyBindings.h)；`[game] KeyHints=0` 可关闭。
+
 ## 作弊码
 
 | 作弊码 | 效果 |
@@ -102,6 +105,16 @@
 | `chm` | 现金和黄金各 +9,999,999 |
 
 请注意，升级作弊码会影响支线任务的随机池生成。可能导致某一些主线无其他支线可玩，但是不用担心，即使池子出问题，但你把所有主线都打完，支线便能正常刷新。
+
+## 更新记录
+
+### 1.0.1（2026-11-13）
+
+- 添加案件提示 icon。`[game] KeyHints=0` 可关闭。
+
+### 1.0.0（2026-11-10）
+
+- init release
 
 ## 免责声明
 
